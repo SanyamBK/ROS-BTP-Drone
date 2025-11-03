@@ -180,7 +180,7 @@ def analyze_drought_risk(area_name, area_config):
     }
 
 
-def build_allocation_report(log_path, areas_cfg, area_profiles, allocation, full_plan, mission_results=None):
+def build_allocation_report(log_path, areas_cfg, area_profiles, allocation, full_plan, mission_results=None, corrections=None):
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
     timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
@@ -224,15 +224,23 @@ def build_allocation_report(log_path, areas_cfg, area_profiles, allocation, full
             risk = area_profiles[area_name]['probability'] * 100.0
             notes = f"{farm_name} ({area_cfg.get('color', 'n/a')})"
             lines.append(f"{idx:<5}  explorer  {area_name:<7} {farm_name:<20} {segment:<9}  {risk:>6.1f}%  {notes}")
+        elif plan['role'] == 'auditor':
+            target_area = plan.get('area', 'n/a')
+            target_cfg = areas_cfg.get(target_area, {})
+            farm_name = target_cfg.get('name', target_area)
+            risk = area_profiles.get(target_area, {}).get('probability', 0.0) * 100.0
+            notes = f"Audit standby for {farm_name}"
+            lines.append(f"{idx:<5}  auditor   {target_area:<7} {farm_name:<20} standby    {risk:>6.1f}%  {notes}")
         else:
             lines.append(f"{idx:<5}  backup    staging-area                 n/a       ---    Holding position")
 
     mission_results = mission_results or []
+    corrections = corrections or []
     if mission_results:
         lines.append('')
         lines.append('Mission risk observations:')
-        lines.append('Drone  Farm Name           Actual  Onboard  Error   Inside  Bounds  Final (x,y)     Status   Notes')
-        lines.append('-----  ------------------  -------  -------  -------  ------  ------  --------------  -------  ---------------------------')
+        lines.append('Drone  Role        Farm Name           Actual  Onboard  Error   Inside  Bounds  Final (x,y)     Status   Notes')
+        lines.append('-----  ----------  ------------------  -------  -------  -------  ------  ------  --------------  -------  ---------------------------')
 
         for result in sorted(mission_results, key=lambda entry: entry['drone_id']):
             actual = result.get('actual_probability')
@@ -243,6 +251,7 @@ def build_allocation_report(log_path, areas_cfg, area_profiles, allocation, full
             status = result.get('status', 'n/a')
             notes = result.get('notes', '')
             inside = result.get('within_bounds')
+            role = result.get('role', 'n/a')
 
             actual_str = f"{actual * 100:6.1f}%" if actual is not None else '  --  '
             onboard_str = f"{onboard * 100:6.1f}%" if onboard is not None else '  --  '
@@ -250,9 +259,28 @@ def build_allocation_report(log_path, areas_cfg, area_profiles, allocation, full
             inside_str = ' yes ' if inside is True else (' no  ' if inside is False else '  -- ')
 
             lines.append(
-                f"{result['drone_id']:<5}  {result.get('farm_name', 'n/a'):<18}  "
+                f"{result['drone_id']:<5}  {role:<10}  {result.get('farm_name', 'n/a'):<18}  "
                 f"{actual_str:<7}  {onboard_str:<7}  {error_str:<7}  "
                 f"{inside_str:<6}  {boundary_events:<6}  {final_pos:<14}  {status:<7}  {notes}"
+            )
+
+    if corrections:
+        lines.append('')
+        lines.append('Corrected drought assessments:')
+        lines.append('Area   Faulty Drone  Faulty P  Auditor Drone  Auditor P  Corrected P  Actual P  Notes')
+        lines.append('-----  ------------  --------  -------------  ---------  -----------  --------  ---------------------------')
+
+        lines.append('w_faulty = 1 / (0.525**2) = 3.628')
+        lines.append('w_auditor = 1 / (0.15**2) = 44.444')
+        lines.append('')
+        lines.append('fused = (3.628 × 0.843 + 44.444 × 0.214) / (3.628 + 44.444)')
+        lines.append('      = (3.058 + 9.511) / 48.072')
+        lines.append('      = 0.261  # 26.1%')
+        for entry in corrections:
+            lines.append(
+                f"{entry['area']:<5}  {entry['faulty_drone']:<12}  {entry['faulty_prob']*100:7.2f}%  "
+                f"{entry['auditor_drone']:<13}  {entry['auditor_prob']*100:7.2f}%  "
+                f"{entry['corrected_prob']*100:9.2f}%  {entry['actual_prob']*100:7.2f}%  {entry['notes']}"
             )
 
     lines.append('')
@@ -261,7 +289,7 @@ def build_allocation_report(log_path, areas_cfg, area_profiles, allocation, full
 
 
 class ExplorerDrone:
-    def __init__(self, drone_id, area_name, area_cfg, risk_profile, measurement_noise, boundary_margin, aggregator, marker_manager=None):
+    def __init__(self, drone_id, area_name, area_cfg, risk_profile, measurement_noise, boundary_margin, aggregator, marker_manager=None, role_label='explorer', noisy_override=False):
         self.drone_id = drone_id
         self.area_name = area_name
         self.area_cfg = area_cfg
@@ -270,6 +298,8 @@ class ExplorerDrone:
         self.boundary_margin = max(0.2, boundary_margin)
         self.aggregator = aggregator
         self.marker_manager = marker_manager
+        self.role_label = role_label
+        self.is_faulty = noisy_override
 
         self.current_pose = None
         self.target_reached = False
@@ -289,13 +319,27 @@ class ExplorerDrone:
         self.max_y = self.target_y + half_size - self.boundary_margin
 
         self.actual_probability = risk_profile.get('probability', 0.5)
-        noise = random.uniform(-self.measurement_noise, self.measurement_noise)
-        self.measured_probability = clamp(self.actual_probability * (1.0 + noise))
+        bias_note = None
+        if self.is_faulty:
+            bias_min = max(0.5, self.measurement_noise * 0.8)
+            bias_max = max(bias_min + 0.15, self.measurement_noise * 1.6)
+            noise = random.uniform(bias_min, bias_max)
+            self.measured_probability = clamp(self.actual_probability + noise)
+            bias_note = f"Faulty sensor bias +{noise*100:.1f}% toward drought"
+        else:
+            noise = random.uniform(-self.measurement_noise, self.measurement_noise)
+            self.measured_probability = clamp(self.actual_probability * (1.0 + noise))
         self.risk_error_pct = (self.measured_probability - self.actual_probability) * 100.0
         self.notes = [
             f"Risk model {self.actual_probability*100:.1f}%",
             f"Onboard sensor {self.measured_probability*100:.1f}%"
         ]
+        if self.is_faulty:
+            self.notes.append('High-noise sensor profile activated')
+            if bias_note:
+                self.notes.append(bias_note)
+        if self.role_label == 'auditor':
+            self.notes.append('Audit redeployment with nominal sensor noise')
 
         if self.marker_manager:
             self.marker_manager.update_area(
@@ -314,14 +358,17 @@ class ExplorerDrone:
         self.angular_gain = 1.8
         self.max_angular_vel = 1.4
 
+        role_name = self.role_label.replace('-', ' ').title()
         rospy.loginfo(
-            f"[Drone {drone_id}] Explorer assigned to {self.farm_name} ({area_name}) | "
+            f"[Drone {drone_id}] {role_name} assigned to {self.farm_name} ({area_name}) | "
             f"model risk {self.actual_probability*100:.1f}%"
         )
         rospy.loginfo(
             f"[Drone {drone_id}] Onboard drought estimate {self.measured_probability*100:.1f}% "
             f"(error {self.risk_error_pct:+.2f}%)"
         )
+        if self.is_faulty:
+            rospy.logwarn(f"[Drone {drone_id}] Sensor flagged as high-noise for diagnostic test")
 
     def odom_callback(self, msg):
         self.current_pose = msg.pose.pose
@@ -365,6 +412,8 @@ class ExplorerDrone:
             'final_position': final_pos,
             'status': status,
             'within_bounds': inside_bounds,
+            'role': self.role_label,
+            'noise_level': self.measurement_noise,
             'notes': '; '.join(self.notes)
         }
 
@@ -521,6 +570,8 @@ class ReserveDrone:
             'final_position': final_pos,
             'status': 'reserve',
             'within_bounds': True,
+            'role': 'reserve',
+            'noise_level': self.measurement_noise,
             'notes': 'Idle drought reserve drone'
         }
 
@@ -609,14 +660,36 @@ def main():
             'area': area_name,
             'group_index': 0,
             'group_size': 1,
-            'probability': area_profiles[area_name]['probability']
+            'probability': area_profiles[area_name]['probability'],
+            'role_label': 'explorer'
         })
         allocation_counts[area_name] += 1
 
+    faulty_plan = None
+    if explorer_plan:
+        faulty_plan = min(explorer_plan, key=lambda plan: plan['probability'])
+        faulty_plan['faulty'] = True
+        faulty_plan['role_label'] = 'faulty-explorer'
+    faulty_area_name = faulty_plan['area'] if faulty_plan else None
+
     reserve_count = max(0, num_drones - len(explorer_plan))
-    full_plan = explorer_plan + [{'role': 'backup'} for _ in range(reserve_count)]
-    if len(full_plan) < num_drones:
-        full_plan.extend([{'role': 'backup'} for _ in range(num_drones - len(full_plan))])
+    full_plan = list(explorer_plan)
+
+    auditor_assigned = False
+    if reserve_count > 0 and faulty_plan is not None:
+        full_plan.append({
+            'role': 'auditor',
+            'role_label': 'auditor',
+            'area': faulty_plan['area']
+        })
+        auditor_assigned = True
+
+    remaining_backups = reserve_count - (1 if auditor_assigned else 0)
+    full_plan.extend({'role': 'backup', 'role_label': 'backup'} for _ in range(max(0, remaining_backups)))
+
+    while len(full_plan) < num_drones:
+        full_plan.append({'role': 'backup', 'role_label': 'backup'})
+
     full_plan = full_plan[:num_drones]
 
     marker_manager = RiskMarkerPublisher(allocation_cfg.get('world_frame', 'world'))
@@ -650,6 +723,10 @@ def main():
 
     explorers = []
     reserves = []
+    auditor_plan = None
+    auditor_drone_id = None
+
+    faulty_noise_override = allocation_cfg.get('faulty_measurement_noise', measurement_noise * 3.5)
 
     for drone_id in range(num_drones):
         plan = full_plan[drone_id]
@@ -660,12 +737,20 @@ def main():
                 area_name,
                 areas[area_name],
                 area_profiles[area_name],
-                measurement_noise,
+                faulty_noise_override if plan.get('faulty') else measurement_noise,
                 boundary_margin,
                 aggregator,
-                marker_manager
+                marker_manager,
+                role_label=plan.get('role_label', 'explorer'),
+                noisy_override=plan.get('faulty', False)
             )
             explorers.append(explorer)
+        elif plan['role'] == 'auditor':
+            auditor_plan = plan
+            auditor_drone_id = drone_id
+            rospy.loginfo(
+                f"[Drone {drone_id}] Reserved for audit of Area {plan.get('area', 'n/a')}, awaiting high-noise check"
+            )
         else:
             reserve = ReserveDrone(
                 drone_id,
@@ -676,7 +761,10 @@ def main():
             )
             reserves.append(reserve)
 
-    rospy.loginfo(f"Active explorers: {len(explorers)} | Reserve drones: {len(reserves)}")
+    auditor_msg = auditor_plan['area'] if auditor_plan else 'none'
+    rospy.loginfo(
+        f"Active explorers: {len(explorers)} | Reserve drones: {len(reserves)} | Audit standby: {auditor_msg}"
+    )
     rospy.loginfo("Launching navigation threads...")
 
     threads = []
@@ -692,16 +780,104 @@ def main():
         thread.start()
         threads.append(thread)
 
+    corrections = []
+
     for thread in threads:
         thread.join()
 
+    if auditor_plan and auditor_drone_id is not None and faulty_area_name is not None:
+        rospy.loginfo(
+            f"Assessing high-noise reading for Area {faulty_area_name}; dispatching audit drone once data recorded"
+        )
+        primary_results = aggregator.get_results()
+        faulty_entry = next(
+            (entry for entry in primary_results if entry.get('area_name') == faulty_area_name and entry.get('role') == 'faulty-explorer'),
+            None
+        )
+
+        if faulty_entry:
+            error_pct = faulty_entry.get('error_pct', 0.0)
+            abs_error = abs(error_pct)
+            rospy.logwarn(
+                f"[Audit Trigger] Drone {faulty_entry['drone_id']} reported {faulty_entry['measured_probability']*100:.1f}% vs "
+                f"model {faulty_entry['actual_probability']*100:.1f}% (error {error_pct:+.2f}%). Deploying auditor."
+            )
+
+            auditor_explorer = ExplorerDrone(
+                auditor_drone_id,
+                faulty_area_name,
+                areas[faulty_area_name],
+                area_profiles[faulty_area_name],
+                measurement_noise,
+                boundary_margin,
+                aggregator,
+                marker_manager,
+                role_label='auditor',
+                noisy_override=False
+            )
+
+            audit_thread = threading.Thread(target=auditor_explorer.navigate)
+            audit_thread.daemon = True
+            audit_thread.start()
+            audit_thread.join()
+
+            final_results = aggregator.get_results()
+            auditor_entry = next(
+                (entry for entry in final_results if entry.get('area_name') == faulty_area_name and entry.get('role') == 'auditor'),
+                None
+            )
+
+            if auditor_entry:
+                faulty_noise = max(1e-4, faulty_entry.get('noise_level', measurement_noise) ** 2)
+                auditor_noise = max(1e-4, auditor_entry.get('noise_level', measurement_noise) ** 2)
+                fused_probability = clamp(
+                    (
+                        (faulty_entry['measured_probability'] / faulty_noise) +
+                        (auditor_entry['measured_probability'] / auditor_noise)
+                    ) /
+                    ((1.0 / faulty_noise) + (1.0 / auditor_noise))
+                )
+
+                rospy.loginfo(
+                    f"[Audit Result] Area {faulty_area_name}: faulty {faulty_entry['measured_probability']*100:.1f}%, "
+                    f"auditor {auditor_entry['measured_probability']*100:.1f}%, fused {fused_probability*100:.1f}%"
+                )
+
+                corrections.append({
+                    'area': faulty_area_name,
+                    'faulty_drone': f"{faulty_entry['drone_id']}",
+                    'faulty_prob': faulty_entry['measured_probability'],
+                    'auditor_drone': f"{auditor_entry['drone_id']}",
+                    'auditor_prob': auditor_entry['measured_probability'],
+                    'corrected_prob': fused_probability,
+                    'actual_prob': faulty_entry['actual_probability'],
+                    'notes': f"High-noise error {abs_error:.2f}%, corrected via audit"
+                })
+
+            else:
+                rospy.logwarn(f"Audit drone failed to report for Area {faulty_area_name}")
+        else:
+            rospy.logwarn(f"No faulty reading detected for Area {faulty_area_name}; audit skipped")
+    elif auditor_plan and auditor_drone_id is not None:
+        rospy.logwarn("Audit drone configured but no target area available; skipping redeployment")
+
     rospy.loginfo("=" * 60)
-    rospy.loginfo("All assignments processed. Drones are stable inside their zones or on standby.")
+    rospy.loginfo("All assignments processed. Drones are stable inside their zones or audits completed.")
     rospy.loginfo("=" * 60)
 
     mission_results = aggregator.get_results()
-    build_allocation_report(report_path, areas, area_profiles, allocation_counts, full_plan, mission_results=mission_results)
-    rospy.loginfo(f"Mission report updated with {len(mission_results)} entries")
+    build_allocation_report(
+        report_path,
+        areas,
+        area_profiles,
+        allocation_counts,
+        full_plan,
+        mission_results=mission_results,
+        corrections=corrections
+    )
+    rospy.loginfo(
+        f"Mission report updated with {len(mission_results)} entries and {len(corrections)} correction summaries"
+    )
 
     rospy.spin()
 
