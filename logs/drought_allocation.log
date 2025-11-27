@@ -1,5 +1,5 @@
 MULTI-DRONE FARMLAND DROUGHT ALLOCATION REPORT
-Generated (UTC): 2025-11-07 05:41:44
+Generated (UTC): 2025-11-27 21:23:19
 
 Drought probability model:
   * Weighted rainfall deficit, soil moisture deficit, vegetation stress, and heatwave intensity
@@ -31,14 +31,14 @@ Drone  Role       Assignment (segment)              Risk   Notes
 Mission risk observations:
 Drone  Role        Farm Name           Actual  Onboard  Error   Inside  Bounds  Final (x,y)     Status   Notes
 -----  ----------  ------------------  -------  -------  -------  ------  ------  --------------  -------  ---------------------------
-0      explorer    Farmland 3            92.6%    96.5%   +3.89%   yes    0       (9.91, 9.77)    holding  Risk model 92.6%; Onboard sensor 96.5%; Holding within farm bounds
-1      explorer    Farmland 1            91.3%    97.9%   +6.56%   yes    0       (-9.87, 9.80)   holding  Risk model 91.3%; Onboard sensor 97.9%; Holding within farm bounds
-2      explorer    Farmland 6            70.6%    71.9%   +1.28%   yes    0       (9.85, -0.19)   holding  Risk model 70.6%; Onboard sensor 71.9%; Holding within farm bounds
-3      explorer    Farmland 4            63.6%    69.1%   +5.45%   yes    0       (-9.81, -0.14)  holding  Risk model 63.6%; Onboard sensor 69.1%; Holding within farm bounds
-4      explorer    Farmland 2            32.1%    31.2%   -0.91%   yes    0       (0.02, 9.77)    holding  Risk model 32.1%; Onboard sensor 31.2%; Holding within farm bounds
-5      faulty-explorer  Farmland 5            20.9%    99.1%  +78.17%   yes    0       (0.04, -0.23)   holding  Risk model 20.9%; Onboard sensor 99.1%; High-noise sensor profile activated; Faulty sensor bias +78.2% toward drought; Holding within farm bounds
-6      auditor     Farmland 5            20.9%    19.2%   -1.65%   yes    0       (0.03, -0.24)   holding  Risk model 20.9%; Onboard sensor 19.2%; Audit redeployment with nominal sensor noise; Holding within farm bounds
-7      reserve     Staging Pad            0.0%     0.0%   +0.00%   yes    0       (0.19, -9.86)   reserve  Idle drought reserve drone
+0      explorer    Farmland 3            92.6%    89.5%   -3.10%   yes    0       (9.93, 9.77)    holding  Risk model 92.6%; Onboard sensor 89.5%; Holding within farm bounds
+1      explorer    Farmland 1            91.3%   100.0%   +8.70%   yes    0       (-9.87, 9.80)   holding  Risk model 91.3%; Onboard sensor 100.0%; Holding within farm bounds
+2      explorer    Farmland 6            70.6%    69.8%   -0.78%   yes    0       (9.85, -0.18)   holding  Risk model 70.6%; Onboard sensor 69.8%; Holding within farm bounds
+3      explorer    Farmland 4            63.6%    54.3%   -9.35%   yes    0       (-9.81, -0.14)  holding  Risk model 63.6%; Onboard sensor 54.3%; Holding within farm bounds
+4      explorer    Farmland 2            32.1%    36.4%   +4.29%   yes    0       (0.02, 9.75)    holding  Risk model 32.1%; Onboard sensor 36.4%; Holding within farm bounds
+5      faulty-explorer  Farmland 5            20.9%    94.8%  +73.89%   yes    0       (0.05, -0.23)   holding  Risk model 20.9%; Onboard sensor 94.8%; High-noise sensor profile activated; Faulty sensor bias +73.9% toward drought; Holding within farm bounds
+6      auditor     Farmland 5            20.9%    21.6%   +0.66%   yes    0       (0.02, -0.24)   holding  Risk model 20.9%; Onboard sensor 21.6%; Audit redeployment with nominal sensor noise; Holding within farm bounds
+7      reserve     Staging Pad            0.0%     0.0%   +0.00%   yes    0       (0.19, -9.85)   reserve  Idle drought reserve drone
 
 Corrected drought assessments:
 Area   Faulty Drone  Faulty P  Auditor Drone  Auditor P  Corrected P  Actual P  Notes
@@ -49,4 +49,4 @@ w_auditor = 1 / (0.15**2) = 44.444
 fused = (3.628 × 0.843 + 44.444 × 0.214) / (3.628 + 44.444)
       = (3.058 + 9.511) / 48.072
       = 0.261  # 26.1%
-area_5  5               99.06%  6                19.25%      25.27%    20.90%  High-noise error 78.17%, corrected via audit
+area_5  5               94.79%  6                21.56%      27.09%    20.90%  High-noise error 73.89%, corrected via audit
