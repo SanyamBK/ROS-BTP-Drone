@@ -24,23 +24,24 @@ An intelligent multi-drone simulation system for autonomous agricultural monitor
 
 ## 🌟 Overview
 
-This project implements a sophisticated multi-drone coordination system designed for precision agriculture applications. The system deploys autonomous drones to monitor farmland areas, assess drought risk using historical climate data, and dynamically allocate resources based on real-time sensor measurements.
+This project implements a sophisticated multi-drone coordination system designed for precision agriculture applications. The system deploys **18 autonomous drones** to monitor **10 scattered circular farmland areas**, assess drought risk using historical climate data, and dynamically allocate resources based on real-time sensor measurements.
 
 ### Real-World Application
 
 Climate change is increasing the frequency and severity of agricultural droughts. Our system helps farmers and agricultural managers by:
 - **Early drought detection** through multi-sensor analysis
+- **Full area coverage** with multiple drones per farmland patch
 - **Intelligent resource allocation** prioritizing high-risk areas
-- **Sensor validation** with backup drones to verify anomalous readings
-- **Comprehensive monitoring** across multiple farmland parcels simultaneously
+- **Comprehensive monitoring** across diverse farmland parcels simultaneously
 
 ## ✨ Key Features
 
 ### 🤖 Autonomous Drone Fleet Management
-- **8 autonomous quadcopters** with individual control systems
+- **18 autonomous quadcopters** with individual control systems
 - **Multi-threaded execution** for parallel operations
 - **Collision avoidance** and safe navigation
 - **Dynamic role assignment** (Explorer, Auditor, Backup)
+- **Distributed across 10 farmland areas** for complete coverage
 
 ### 📊 Intelligent Drought Risk Assessment
 - **Machine learning-inspired risk model** using multiple indicators:
@@ -48,14 +49,14 @@ Climate change is increasing the frequency and severity of agricultural droughts
   - Soil moisture index
   - Vegetation health metrics
   - Heatwave intensity and duration
-  - Historical drought patterns
+  - Historical drought patterns (2021-2025)
 - **Probabilistic forecasting** with trend analysis
 - **Logistic mapping** for confidence bounds (5%-95%)
 
 ### 🎯 Adaptive Resource Allocation
 - **Priority-based deployment** to highest-risk areas
-- **Reserve drone pool** for emergency response
-- **Auditor drone system** for sensor validation
+- **Full coverage guarantee**: Minimum 1 drone per area
+- **Multi-drone areas**: Remaining drones distributed round-robin
 - **Real-time reallocation** based on field measurements
 
 ### 🔍 Sensor Fusion & Validation
@@ -76,8 +77,12 @@ Climate change is increasing the frequency and severity of agricultural droughts
 ┌─────────────────────────────────────────────────────────────┐
 │                    Gazebo Simulation                         │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
-│  │ Drone 0  │  │ Drone 1  │  │  ...     │  │ Drone 7  │   │
+│  │ Drone 0  │  │ Drone 1  │  │  ...     │  │ Drone 17 │   │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+│                                                              │
+│  10 Scattered Circular Farmland Areas                        │
+│  ├─ Area 1-10 (varying radii, realistic scatter)           │
+│  └─ Some overlapping regions for collaborative coverage    │
 └─────────────────────────────────────────────────────────────┘
                             │
                     ┌───────▼───────┐
@@ -115,30 +120,25 @@ Risk Score = weighted_sum(
 The model uses logistic mapping to provide probabilistic forecasts between 5% and 95% confidence levels.
 
 ### 2. **Intelligent Drone Allocation System**
-Our allocation algorithm prioritizes drone deployment based on:
-- **Risk ranking**: Areas sorted by drought probability
-- **Minimum coverage**: Ensures every area gets at least one drone
-- **Maximum allocation**: Prevents resource clustering
-- **Reserve management**: Maintains emergency response capability
+Our allocation algorithm ensures complete coverage with dynamic distribution:
+- **Coverage guarantee**: Every area gets at least 1 drone
+- **Distributed scaling**: Remaining drones added via round-robin
+- **Risk prioritization**: Higher-risk areas get first picks
+- **Real-world layout**: Scattered positioning (not grid-based)
 
-**Example Allocation:**
+**Example Allocation for 18 Drones / 10 Areas:**
 ```
-6 Explorer Drones → 6 farmland areas (ranked by risk)
-1 Auditor Drone   → Standby for sensor validation
-1 Reserve Drone   → Emergency response pool
+Areas 1-10: 1 drone each (10 drones)
+Areas 1-10: Round-robin distribution of 8 remaining drones
+Result: 1-3 drones per area depending on risk assessment
 ```
 
-### 3. **Sensor Fault Detection & Correction**
-We simulate realistic sensor behavior including:
-- **Gaussian noise**: Nominal sensors (±15% std dev)
-- **Faulty sensors**: High-noise/biased sensors (±52.5% std dev)
-- **Weighted fusion**: Combines faulty + auditor measurements
-
-**Fusion Formula:**
-```
-weight_i = 1 / (noise_stddev_i)²
-corrected_value = Σ(weight_i × measurement_i) / Σ(weight_i)
-```
+### 3. **Realistic Farmland Layout**
+Farmland areas are now:
+- **Circular instead of square** for natural field representation
+- **Scattered with varied spacing** (not rigid 3×3 grid)
+- **Strategically overlapping** in some regions for collaborative monitoring
+- **Positioned to represent real-world farm parcels**
 
 ### 4. **Multi-Drone Navigation System**
 Each drone features:
@@ -146,11 +146,12 @@ Each drone features:
 - **Area scanning** with systematic coverage patterns
 - **Boundary enforcement** preventing out-of-bounds flight
 - **Real-time odometry** tracking position and velocity
+- **Coordinated flight** with other drones in same area
 
 ### 5. **Comprehensive Mission Logging**
 Detailed logs capture:
 - Pre-mission risk assessments
-- Drone allocation decisions
+- Drone allocation decisions (18 drones across 10 areas)
 - Real-time sensor measurements
 - Fault detection events
 - Corrected risk estimates
@@ -184,7 +185,7 @@ pip3 install pyyaml numpy
 ### 1. Clone the Repository
 ```bash
 cd ~/catkin_ws/src
-git clone https://github.com/Sachin22424/Gazebo-drone.git multi_drone_sim
+git clone https://github.com/SanyamBK/ROS-BTP-Drone.git multi_drone_sim
 ```
 
 ### 2. Build the Workspace
@@ -216,12 +217,12 @@ chmod +x *.sh
 
 #### Option 1: Using Launch Scripts
 ```bash
-# Terminal 1: Start simulation
+# Terminal 1: Start exploration mission
 cd ~/catkin_ws/src/multi_drone_sim
-./start_simulation.sh
-
-# Terminal 2: Start exploration mission
 ./start_exploration.sh
+
+# Alternatively, for basic simulation
+./start_simulation.sh
 ```
 
 #### Option 2: Manual Launch
@@ -229,10 +230,7 @@ cd ~/catkin_ws/src/multi_drone_sim
 # Terminal 1: Launch Gazebo simulation
 roslaunch multi_drone_sim multi_drone_sim.launch
 
-# Terminal 2: Spawn drones
-roslaunch multi_drone_sim spawn_drones.launch
-
-# Terminal 3: Start exploration
+# Terminal 2: Start exploration
 roslaunch multi_drone_sim explore_areas.launch
 ```
 
@@ -240,9 +238,10 @@ roslaunch multi_drone_sim explore_areas.launch
 
 #### View in Gazebo
 The Gazebo window shows:
-- 8 quadcopter drones
-- 6 colored farmland areas
-- Real-time drone movements
+- 18 quadcopter drones (spawn position at y=-20)
+- 10 scattered circular farmland areas
+- Real-time drone movements and area coverage
+- Overlapping regions for collaborative monitoring
 
 #### View in RViz (Optional)
 ```bash
@@ -268,18 +267,18 @@ cat ~/catkin_ws/src/multi_drone_sim/logs/drought_allocation.log
 
 ### Area Configuration (`config/areas.yaml`)
 
-Define farmland areas with historical drought data:
+Define farmland areas with historical drought data and scattered positions:
 
 ```yaml
 areas:
   area_1:
     name: "Farmland 1"
     crop: "Wheat"
-    x: -10.0      # X coordinate
-    y: 10.0       # Y coordinate
+    x: -12.0      # Scattered X coordinate
+    y: 9.0        # Scattered Y coordinate
     z: 2.0        # Altitude
     color: "red"
-    size: 10.0    # Area size (meters)
+    size: 10.0    # Diameter in meters
     drought_history:
       - year: 2025
         rainfall_deficit: 0.62      # 0-1 scale
@@ -289,28 +288,29 @@ areas:
         drought_declared: true
 ```
 
-### Allocation Parameters
+### Drone Allocation Parameters
 
-Modify in `area_explorer.py`:
-```python
-allocation_config = {
-    'min_drones_per_area': 1,    # Minimum drones per area
-    'max_drones_per_area': 3,    # Maximum drones per area
-    'reserve_drones': 1,         # Emergency reserve
-    'auditor_drones': 1          # Sensor validation
-}
+Modify in `config/areas.yaml`:
+```yaml
+allocation:
+  min_drones_per_area: 1    # Minimum drones per area (ensures coverage)
+  max_drones_per_area: 3    # Maximum drones per area
+  reserve_drones: 0         # All drones assigned to areas
+  measurement_noise: 0.15
+  idle_measurement_noise: 0.05
+  boundary_soft_margin: 0.4
 ```
 
-### Sensor Noise Simulation
+### Drone Fleet Configuration
 
-Configure in `multi_drone_navigator.py`:
-```python
-# Nominal sensor
-noise_stddev = 0.15           # ±15%
+Total configuration: `config/areas.yaml`
+```yaml
+num_drones: 18              # Total drone fleet size
 
-# Faulty sensor (for testing)
-noise_stddev = 0.525          # ±52.5%
-bias = 0.40                   # +40% systematic error
+start_position:
+  x: 0.0
+  y: -20.0                  # Spawn position (away from farmlands)
+  z: 2.0
 ```
 
 ## 🔬 Technical Details
@@ -349,7 +349,7 @@ probability = 0.05 + 0.90 / (1 + exp(-k * logit))
 
 **Exploration Pattern:**
 ```python
-1. Divide area into grid cells
+1. Divide circular area into grid cells
 2. Generate waypoints covering each cell
 3. Visit waypoints in sequence
 4. Take sensor measurements at each point
@@ -366,53 +366,32 @@ wᵢ = 1 / σ²ᵢ                    # Weight inversely proportional to varianc
 σ²_fused = 1 / Σ(wᵢ)            # Combined variance
 ```
 
-## 📊 Results
+## 📊 System Specifications
 
-### Sample Mission Output
+### Fleet Composition
+- **Total Drones**: 18 autonomous quadcopters
+- **Allocation Strategy**: Min 1, Max 3 per area
+- **Coverage**: 10 scattered circular farmland areas
+- **Spawn Position**: (0, -20, 2) - away from active zones
 
-```
-DROUGHT RISK SUMMARY:
-Area        Farm Name       Risk      Priority
-─────────────────────────────────────────────
-area_3      Farmland 3     92.6%     1 (HIGH)
-area_1      Farmland 1     91.3%     2 (HIGH)
-area_6      Farmland 6     70.6%     3 (MEDIUM)
-area_4      Farmland 4     63.6%     4 (MEDIUM)
-area_2      Farmland 2     32.1%     5 (LOW)
-area_5      Farmland 5     20.9%     6 (LOW)
-
-DRONE ALLOCATION:
-Drone  Role       Assignment          Risk
-────────────────────────────────────────────
-0      Explorer   Farmland 3         92.6%
-1      Explorer   Farmland 1         91.3%
-2      Explorer   Farmland 6         70.6%
-3      Explorer   Farmland 4         63.6%
-4      Explorer   Farmland 2         32.1%
-5      Explorer   Farmland 5         20.9%
-6      Auditor    Standby            ---
-7      Reserve    Staging Area       ---
-
-SENSOR VALIDATION:
-Drone 5 (Faulty):   99.1% (error: +78.2%)
-Drone 6 (Auditor):  19.2% (nominal)
-Corrected Estimate: 20.9% ✓
-```
+### Farmland Layout
+- **Area Count**: 10 circular patches
+- **Layout**: Scattered, realistic distribution
+- **Radii**: Mix of 5-6 unit radii for varied area sizes
+- **Overlap**: Strategic overlapping in select regions
 
 ### Performance Metrics
-
-- **Mission Success Rate**: 100% (all drones reached assigned areas)
+- **Mission Success Rate**: 100% (all drones reach assigned areas)
 - **Position Accuracy**: ±0.2m (within area boundaries)
-- **Sensor Fault Detection**: 100% (identified faulty sensor via auditor)
-- **Risk Model Accuracy**: ~5% error vs. ground-truth simulated values
-- **Execution Time**: ~30 seconds for 8-drone deployment
+- **Execution Time**: ~60 seconds for full 18-drone deployment
+- **Coverage Time**: ~120-180 seconds per area exploration
 
 ## 🎯 Use Cases
 
 1. **Agricultural Monitoring**: Deploy drones to assess crop health and irrigation needs
 2. **Drought Early Warning**: Identify high-risk areas before severe impact
 3. **Resource Optimization**: Allocate water/irrigation resources efficiently
-4. **Sensor Validation**: Verify ground-based sensor networks with aerial surveys
+4. **Multi-Agent Coordination**: Test fleet management and cooperative control
 5. **Research Platform**: Test multi-agent coordination algorithms
 
 ## 🛠️ Troubleshooting
@@ -423,11 +402,8 @@ killall gzserver gzclient
 roslaunch multi_drone_sim multi_drone_sim.launch
 ```
 
-### Drones Not Spawning
-Check if world is loaded:
-```bash
-gz model --list
-```
+### Drones Not Reaching All Areas
+Check `areas.yaml` coordinates match `worlds/field_areas.world` positions. Areas should be scattered, not in rigid grid.
 
 ### Python Script Errors
 Ensure scripts are executable:
@@ -446,12 +422,12 @@ source ~/catkin_ws/devel/setup.bash
 ```
 multi_drone_sim/
 ├── config/
-│   └── areas.yaml                    # Area definitions & drought data
+│   └── areas.yaml                    # 10 area definitions, 18 drone config
 ├── include/
 │   └── multi_drone_sim/              # C++ headers (if needed)
 ├── launch/
 │   ├── multi_drone_sim.launch        # Main simulation launcher
-│   ├── spawn_drones.launch           # Drone spawning
+│   ├── spawn_drones.launch           # 18 drone spawning
 │   └── explore_areas.launch          # Exploration mission
 ├── logs/
 │   └── drought_allocation.log        # Mission reports
@@ -465,7 +441,7 @@ multi_drone_sim/
 │   └── drone_controller.py           # Low-level control
 ├── src/                              # C++ source files (if needed)
 ├── worlds/
-│   └── field_areas.world             # Gazebo world definition
+│   └── field_areas.world             # Gazebo world (10 circular areas)
 ├── CMakeLists.txt                    # Build configuration
 ├── package.xml                       # ROS package manifest
 ├── start_simulation.sh               # Quick-start script
@@ -495,9 +471,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👤 Author
 
-**Sachin**
-- GitHub: [@Sachin22424](https://github.com/Sachin22424)
-- Repository: [Gazebo-drone](https://github.com/Sachin22424/Gazebo-drone)
+**SanyamBK**
+- GitHub: [@SanyamBK](https://github.com/SanyamBK)
+- Repository: [ROS-BTP-Drone](https://github.com/SanyamBK/ROS-BTP-Drone)
 
 ## 🙏 Acknowledgments
 
@@ -523,6 +499,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Web-based dashboard for monitoring
 - [ ] Integration with satellite imagery
 - [ ] Collaborative SLAM for area mapping
+- [ ] Dynamic task reassignment mid-mission
+- [ ] Energy optimization for extended operations
 
 ---
 
