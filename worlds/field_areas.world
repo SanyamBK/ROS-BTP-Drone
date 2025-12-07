@@ -20,7 +20,7 @@
       <gravity>0 0 -9.8</gravity>
     </physics>
 
-    <!-- Green field base (40m x 30m) -->
+    <!-- Green field base (expanded) -->
     <model name="green_field">
       <static>true</static>
       <link name="link">
@@ -28,7 +28,7 @@
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>40 30</size>
+              <size>70 70</size>
             </plane>
           </geometry>
           <surface>
@@ -44,7 +44,7 @@
           <geometry>
             <plane>
               <normal>0 0 1</normal>
-              <size>40 30</size>
+              <size>70 70</size>
             </plane>
           </geometry>
           <material>
@@ -56,128 +56,197 @@
       </link>
     </model>
 
-    <!-- Area 1: Red (Top-Left) -->
+    <!-- Scattered circular farmland areas (less regular layout) -->
+
     <model name="area_1">
       <static>true</static>
-      <pose>-10 10 0.01 0 0 0</pose>
+      <pose>-12.0 9.0 0.01 0 0 0</pose>
       <link name="link">
         <visual name="visual">
           <geometry>
-            <box>
-              <size>10 10 0.01</size>
-            </box>
+            <cylinder>
+              <radius>5.0</radius>
+              <length>0.01</length>
+            </cylinder>
           </geometry>
           <material>
             <ambient>0.8 0.2 0.2 0.7</ambient>
             <diffuse>0.9 0.2 0.2 0.7</diffuse>
-            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
     </model>
 
-    <!-- Area 2: Blue (Top-Center) -->
     <model name="area_2">
       <static>true</static>
-      <pose>0 10 0.01 0 0 0</pose>
+      <pose>-2.0 11.5 0.01 0 0 0</pose>
       <link name="link">
         <visual name="visual">
           <geometry>
-            <box>
-              <size>10 10 0.01</size>
-            </box>
+            <cylinder>
+              <radius>6.0</radius>
+              <length>0.01</length>
+            </cylinder>
           </geometry>
           <material>
             <ambient>0.2 0.2 0.8 0.7</ambient>
             <diffuse>0.2 0.2 0.9 0.7</diffuse>
-            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
     </model>
 
-    <!-- Area 3: Yellow (Top-Right) -->
     <model name="area_3">
       <static>true</static>
-      <pose>10 10 0.01 0 0 0</pose>
+      <pose>11.0 7.5 0.01 0 0 0</pose>
       <link name="link">
         <visual name="visual">
           <geometry>
-            <box>
-              <size>10 10 0.01</size>
-            </box>
+            <cylinder>
+              <radius>5.0</radius>
+              <length>0.01</length>
+            </cylinder>
           </geometry>
           <material>
             <ambient>0.8 0.8 0.2 0.7</ambient>
             <diffuse>0.9 0.9 0.2 0.7</diffuse>
-            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
     </model>
 
-    <!-- Area 4: Purple (Bottom-Left) -->
     <model name="area_4">
       <static>true</static>
-      <pose>-10 0 0.01 0 0 0</pose>
+      <pose>-11.0 1.5 0.01 0 0 0</pose>
       <link name="link">
         <visual name="visual">
           <geometry>
-            <box>
-              <size>10 10 0.01</size>
-            </box>
+            <cylinder>
+              <radius>5.0</radius>
+              <length>0.01</length>
+            </cylinder>
           </geometry>
           <material>
             <ambient>0.6 0.2 0.8 0.7</ambient>
             <diffuse>0.7 0.2 0.9 0.7</diffuse>
-            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
     </model>
 
-    <!-- Area 5: Orange (Bottom-Center) -->
     <model name="area_5">
       <static>true</static>
-      <pose>0 0 0.01 0 0 0</pose>
+      <pose>1.0 -1.0 0.01 0 0 0</pose>
       <link name="link">
         <visual name="visual">
           <geometry>
-            <box>
-              <size>10 10 0.01</size>
-            </box>
+            <cylinder>
+              <radius>6.0</radius>
+              <length>0.01</length>
+            </cylinder>
           </geometry>
           <material>
             <ambient>0.9 0.5 0.1 0.7</ambient>
             <diffuse>1.0 0.6 0.1 0.7</diffuse>
-            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
     </model>
 
-    <!-- Area 6: Cyan (Bottom-Right) -->
     <model name="area_6">
       <static>true</static>
-      <pose>10 0 0.01 0 0 0</pose>
+      <pose>9.0 -2.0 0.01 0 0 0</pose>
       <link name="link">
         <visual name="visual">
           <geometry>
-            <box>
-              <size>10 10 0.01</size>
-            </box>
+            <cylinder>
+              <radius>5.0</radius>
+              <length>0.01</length>
+            </cylinder>
           </geometry>
           <material>
             <ambient>0.2 0.8 0.8 0.7</ambient>
             <diffuse>0.2 0.9 0.9 0.7</diffuse>
-            <specular>0.1 0.1 0.1 1</specular>
           </material>
         </visual>
       </link>
     </model>
 
-    <!-- Area labels using text (represented as boxes for simplicity) -->
-    <!-- You can add more detailed labels if needed -->
+    <model name="area_7">
+      <static>true</static>
+      <pose>-8.0 -9.5 0.01 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>5.0</radius>
+              <length>0.01</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.8 0.2 0.8 0.7</ambient>
+            <diffuse>0.9 0.2 0.9 0.7</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="area_8">
+      <static>true</static>
+      <pose>0.5 -12.0 0.01 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>6.0</radius>
+              <length>0.01</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.5 0.8 0.2 0.7</ambient>
+            <diffuse>0.6 0.9 0.2 0.7</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="area_9">
+      <static>true</static>
+      <pose>8.5 -11.0 0.01 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>5.0</radius>
+              <length>0.01</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.6 0.6 0.2 0.7</ambient>
+            <diffuse>0.7 0.7 0.2 0.7</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="area_10">
+      <static>true</static>
+      <pose>3.5 4.0 0.01 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>5.0</radius>
+              <length>0.01</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.0 0.0 0.5 0.7</ambient>
+            <diffuse>0.0 0.0 0.6 0.7</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
 
   </world>
 </sdf>

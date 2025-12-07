@@ -24,63 +24,133 @@
   
   <!-- Starting position (all drones start here) -->
   <arg name="start_x" default="0.0"/>
-  <arg name="start_y" default="-10.0"/>
+  <arg name="start_y" default="-20.0"/>
   <arg name="start_z" default="0.2"/>
   
   <!-- Spawn 8 drones at the same starting position with slight offsets to avoid collision -->
   <group ns="drone_0">
     <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
     <node name="spawn_drone_0" pkg="gazebo_ros" type="spawn_model" 
-          args="-sdf -model drone_0 -param robot_description -x 0.0 -y -10.0 -z 0.2"
+          args="-sdf -model drone_0 -param robot_description -x 0.0 -y -20.0 -z 0.2"
           output="screen"/>
   </group>
   
   <group ns="drone_1">
     <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
     <node name="spawn_drone_1" pkg="gazebo_ros" type="spawn_model" 
-          args="-sdf -model drone_1 -param robot_description -x 0.5 -y -10.0 -z 0.2"
+          args="-sdf -model drone_1 -param robot_description -x 0.5 -y -20.0 -z 0.2"
           output="screen"/>
   </group>
   
   <group ns="drone_2">
     <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
     <node name="spawn_drone_2" pkg="gazebo_ros" type="spawn_model" 
-          args="-sdf -model drone_2 -param robot_description -x -0.5 -y -10.0 -z 0.2"
+          args="-sdf -model drone_2 -param robot_description -x -0.5 -y -20.0 -z 0.2"
           output="screen"/>
   </group>
   
   <group ns="drone_3">
     <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
     <node name="spawn_drone_3" pkg="gazebo_ros" type="spawn_model" 
-          args="-sdf -model drone_3 -param robot_description -x 0.0 -y -9.5 -z 0.2"
+          args="-sdf -model drone_3 -param robot_description -x 0.0 -y -19.5 -z 0.2"
           output="screen"/>
   </group>
   
   <group ns="drone_4">
     <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
     <node name="spawn_drone_4" pkg="gazebo_ros" type="spawn_model" 
-          args="-sdf -model drone_4 -param robot_description -x 0.0 -y -10.5 -z 0.2"
+          args="-sdf -model drone_4 -param robot_description -x 0.0 -y -20.5 -z 0.2"
           output="screen"/>
   </group>
   
   <group ns="drone_5">
     <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
     <node name="spawn_drone_5" pkg="gazebo_ros" type="spawn_model" 
-          args="-sdf -model drone_5 -param robot_description -x 0.3 -y -9.7 -z 0.2"
+          args="-sdf -model drone_5 -param robot_description -x 0.3 -y -19.7 -z 0.2"
           output="screen"/>
   </group>
   
   <group ns="drone_6">
     <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
     <node name="spawn_drone_6" pkg="gazebo_ros" type="spawn_model" 
-          args="-sdf -model drone_6 -param robot_description -x -0.3 -y -9.7 -z 0.2"
+          args="-sdf -model drone_6 -param robot_description -x -0.3 -y -19.7 -z 0.2"
           output="screen"/>
   </group>
   
   <group ns="drone_7">
     <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
     <node name="spawn_drone_7" pkg="gazebo_ros" type="spawn_model" 
-          args="-sdf -model drone_7 -param robot_description -x 0.3 -y -10.3 -z 0.2"
+          args="-sdf -model drone_7 -param robot_description -x 0.3 -y -20.3 -z 0.2"
+          output="screen"/>
+  </group>
+
+  <group ns="drone_8">
+    <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
+    <node name="spawn_drone_8" pkg="gazebo_ros" type="spawn_model" 
+          args="-sdf -model drone_8 -param robot_description -x -0.3 -y -20.3 -z 0.2"
+          output="screen"/>
+  </group>
+
+  <group ns="drone_9">
+    <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
+    <node name="spawn_drone_9" pkg="gazebo_ros" type="spawn_model" 
+          args="-sdf -model drone_9 -param robot_description -x 0.5 -y -19.5 -z 0.2"
+          output="screen"/>
+  </group>
+
+  <group ns="drone_10">
+    <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
+    <node name="spawn_drone_10" pkg="gazebo_ros" type="spawn_model" 
+          args="-sdf -model drone_10 -param robot_description -x -0.5 -y -19.5 -z 0.2"
+          output="screen"/>
+  </group>
+
+  <group ns="drone_11">
+    <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
+    <node name="spawn_drone_11" pkg="gazebo_ros" type="spawn_model" 
+          args="-sdf -model drone_11 -param robot_description -x 0.7 -y -20.7 -z 0.2"
+          output="screen"/>
+  </group>
+
+  <group ns="drone_12">
+    <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
+    <node name="spawn_drone_12" pkg="gazebo_ros" type="spawn_model" 
+          args="-sdf -model drone_12 -param robot_description -x -0.7 -y -20.7 -z 0.2"
+          output="screen"/>
+  </group>
+
+  <group ns="drone_13">
+    <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
+    <node name="spawn_drone_13" pkg="gazebo_ros" type="spawn_model" 
+          args="-sdf -model drone_13 -param robot_description -x 0.0 -y -19.3 -z 0.2"
+          output="screen"/>
+  </group>
+
+  <group ns="drone_14">
+    <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
+    <node name="spawn_drone_14" pkg="gazebo_ros" type="spawn_model" 
+          args="-sdf -model drone_14 -param robot_description -x 0.5 -y -20.7 -z 0.2"
+          output="screen"/>
+  </group>
+
+  <group ns="drone_15">
+    <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
+    <node name="spawn_drone_15" pkg="gazebo_ros" type="spawn_model" 
+          args="-sdf -model drone_15 -param robot_description -x -0.5 -y -20.7 -z 0.2"
+          output="screen"/>
+  </group>
+
+  <group ns="drone_16">
+    <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
+    <node name="spawn_drone_16" pkg="gazebo_ros" type="spawn_model" 
+          args="-sdf -model drone_16 -param robot_description -x 0.0 -y -21.0 -z 0.2"
+          output="screen"/>
+  </group>
+
+  <group ns="drone_17">
+    <param name="robot_description" command="cat $(find multi_drone_sim)/models/quadcopter/model.sdf"/>
+    <node name="spawn_drone_17" pkg="gazebo_ros" type="spawn_model" 
+          args="-sdf -model drone_17 -param robot_description -x 0.3 -y -21.0 -z 0.2"
           output="screen"/>
   </group>
 

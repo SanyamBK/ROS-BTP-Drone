@@ -648,13 +648,12 @@ def main():
     area_profiles = {name: analyze_drought_risk(name, cfg) for name, cfg in areas.items()}
 
     ordered_areas = sorted(areas.keys(), key=lambda name: area_profiles[name]['probability'], reverse=True)
-    active_assignments = min(num_drones, len(ordered_areas))
 
     explorer_plan = []
     allocation_counts = {name: 0 for name in areas.keys()}
 
-    for idx in range(active_assignments):
-        area_name = ordered_areas[idx]
+    # First, ensure all areas get at least one drone
+    for area_name in ordered_areas:
         explorer_plan.append({
             'role': 'explorer',
             'area': area_name,
@@ -665,6 +664,22 @@ def main():
         })
         allocation_counts[area_name] += 1
 
+    # Then distribute remaining drones evenly across all areas
+    remaining_drones = num_drones - len(explorer_plan)
+    if remaining_drones > 0:
+        area_list = list(ordered_areas)
+        for i in range(remaining_drones):
+            area_name = area_list[i % len(area_list)]
+            explorer_plan.append({
+                'role': 'explorer',
+                'area': area_name,
+                'group_index': 0,
+                'group_size': 1,
+                'probability': area_profiles[area_name]['probability'],
+                'role_label': 'explorer'
+            })
+            allocation_counts[area_name] += 1
+
     faulty_plan = None
     if explorer_plan:
         faulty_plan = min(explorer_plan, key=lambda plan: plan['probability'])
@@ -672,7 +687,7 @@ def main():
         faulty_plan['role_label'] = 'faulty-explorer'
     faulty_area_name = faulty_plan['area'] if faulty_plan else None
 
-    reserve_count = max(0, num_drones - len(explorer_plan))
+    reserve_count = 0
     full_plan = list(explorer_plan)
 
     auditor_assigned = False
@@ -693,6 +708,7 @@ def main():
     full_plan = full_plan[:num_drones]
 
     marker_manager = RiskMarkerPublisher(allocation_cfg.get('world_frame', 'world'))
+
     aggregator = MissionAggregator()
 
     rospy.loginfo("=" * 60)

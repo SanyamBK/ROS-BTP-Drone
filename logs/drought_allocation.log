@@ -1,5 +1,5 @@
 MULTI-DRONE FARMLAND DROUGHT ALLOCATION REPORT
-Generated (UTC): 2025-11-27 21:23:19
+Generated (UTC): 2025-12-07 16:15:04
 
 Drought probability model:
   * Weighted rainfall deficit, soil moisture deficit, vegetation stress, and heatwave intensity
@@ -11,8 +11,12 @@ Area   Farm Name           P(drought)  RainDef  SoilDef  VegStress  HeatIdx  Dro
 -----  ------------------  ----------  -------  -------  ---------  -------  -----------  -----
 area_3  Farmland 3              92.60%    0.45    0.57     0.46    0.43        0.60   0.27
 area_1  Farmland 1              91.30%    0.47    0.60     0.49    0.44        0.60   0.24
+area_8  Farmland 8              80.56%    0.46    0.56     0.48    0.43        0.60   0.18
 area_6  Farmland 6              70.62%    0.37    0.51     0.43    0.34        0.40   0.18
+area_9  Farmland 9              70.59%    0.39    0.53     0.45    0.36        0.40   0.17
 area_4  Farmland 4              63.62%    0.33    0.49     0.42    0.31        0.20   0.18
+area_10  Farmland 10             47.96%    0.29    0.47     0.37    0.27        0.00   0.13
+area_7  Farmland 7              44.30%    0.26    0.45     0.35    0.23        0.00   0.13
 area_2  Farmland 2              32.08%    0.19    0.42     0.27    0.22        0.00   0.10
 area_5  Farmland 5              20.90%    0.12    0.35     0.22    0.14        0.00   0.07
 
@@ -21,32 +25,19 @@ Drone  Role       Assignment (segment)              Risk   Notes
 -----  ---------  -------------------------------  ------  ---------------------------
 0      explorer  area_3  Farmland 3           1/1          92.6%  Farmland 3 (yellow)
 1      explorer  area_1  Farmland 1           1/1          91.3%  Farmland 1 (red)
-2      explorer  area_6  Farmland 6           1/1          70.6%  Farmland 6 (cyan)
-3      explorer  area_4  Farmland 4           1/1          63.6%  Farmland 4 (purple)
-4      explorer  area_2  Farmland 2           1/1          32.1%  Farmland 2 (blue)
-5      explorer  area_5  Farmland 5           1/1          20.9%  Farmland 5 (orange)
-6      auditor   area_5  Farmland 5           standby      20.9%  Audit standby for Farmland 5
-7      backup    staging-area                 n/a       ---    Holding position
-
-Mission risk observations:
-Drone  Role        Farm Name           Actual  Onboard  Error   Inside  Bounds  Final (x,y)     Status   Notes
------  ----------  ------------------  -------  -------  -------  ------  ------  --------------  -------  ---------------------------
-0      explorer    Farmland 3            92.6%    89.5%   -3.10%   yes    0       (9.93, 9.77)    holding  Risk model 92.6%; Onboard sensor 89.5%; Holding within farm bounds
-1      explorer    Farmland 1            91.3%   100.0%   +8.70%   yes    0       (-9.87, 9.80)   holding  Risk model 91.3%; Onboard sensor 100.0%; Holding within farm bounds
-2      explorer    Farmland 6            70.6%    69.8%   -0.78%   yes    0       (9.85, -0.18)   holding  Risk model 70.6%; Onboard sensor 69.8%; Holding within farm bounds
-3      explorer    Farmland 4            63.6%    54.3%   -9.35%   yes    0       (-9.81, -0.14)  holding  Risk model 63.6%; Onboard sensor 54.3%; Holding within farm bounds
-4      explorer    Farmland 2            32.1%    36.4%   +4.29%   yes    0       (0.02, 9.75)    holding  Risk model 32.1%; Onboard sensor 36.4%; Holding within farm bounds
-5      faulty-explorer  Farmland 5            20.9%    94.8%  +73.89%   yes    0       (0.05, -0.23)   holding  Risk model 20.9%; Onboard sensor 94.8%; High-noise sensor profile activated; Faulty sensor bias +73.9% toward drought; Holding within farm bounds
-6      auditor     Farmland 5            20.9%    21.6%   +0.66%   yes    0       (0.02, -0.24)   holding  Risk model 20.9%; Onboard sensor 21.6%; Audit redeployment with nominal sensor noise; Holding within farm bounds
-7      reserve     Staging Pad            0.0%     0.0%   +0.00%   yes    0       (0.19, -9.85)   reserve  Idle drought reserve drone
-
-Corrected drought assessments:
-Area   Faulty Drone  Faulty P  Auditor Drone  Auditor P  Corrected P  Actual P  Notes
------  ------------  --------  -------------  ---------  -----------  --------  ---------------------------
-w_faulty = 1 / (0.525**2) = 3.628
-w_auditor = 1 / (0.15**2) = 44.444
-
-fused = (3.628 × 0.843 + 44.444 × 0.214) / (3.628 + 44.444)
-      = (3.058 + 9.511) / 48.072
-      = 0.261  # 26.1%
-area_5  5               94.79%  6                21.56%      27.09%    20.90%  High-noise error 73.89%, corrected via audit
+2      explorer  area_8  Farmland 8           1/1          80.6%  Farmland 8 (lime)
+3      explorer  area_6  Farmland 6           1/1          70.6%  Farmland 6 (cyan)
+4      explorer  area_9  Farmland 9           1/1          70.6%  Farmland 9 (olive)
+5      explorer  area_4  Farmland 4           1/1          63.6%  Farmland 4 (purple)
+6      explorer  area_10 Farmland 10          1/1          48.0%  Farmland 10 (navy)
+7      explorer  area_7  Farmland 7           1/1          44.3%  Farmland 7 (magenta)
+8      explorer  area_2  Farmland 2           1/1          32.1%  Farmland 2 (blue)
+9      explorer  area_5  Farmland 5           1/1          20.9%  Farmland 5 (orange)
+10     backup    staging-area                 n/a       ---    Holding position
+11     backup    staging-area                 n/a       ---    Holding position
+12     backup    staging-area                 n/a       ---    Holding position
+13     backup    staging-area                 n/a       ---    Holding position
+14     backup    staging-area                 n/a       ---    Holding position
+15     backup    staging-area                 n/a       ---    Holding position
+16     backup    staging-area                 n/a       ---    Holding position
+17     backup    staging-area                 n/a       ---    Holding position
