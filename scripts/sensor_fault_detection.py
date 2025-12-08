@@ -72,7 +72,7 @@ class SensorFaultDetector:
         Detect if sensor reading is faulty.
         
         Uses statistical hypothesis testing:
-        If |sensor - model| > 2σ + threshold, mark as faulty
+        If |sensor - model| > 2sigma + threshold, mark as faulty
         
         Args:
             model_prob: Drought probability from ML model
@@ -87,7 +87,7 @@ class SensorFaultDetector:
         """
         error = abs(sensor_prob - model_prob)
         
-        # Expected error is 2σ for 95% confidence interval
+        # Expected error is 2sigma for 95% confidence interval
         expected_error = 2 * sensor_noise
         
         # Fault threshold accounting for sensitivity
@@ -173,9 +173,9 @@ class SensorFusion:
         Fuse multiple sensor readings using inverse-variance weighting.
         
         Optimal sensor fusion formula:
-        - Weight_i = 1 / σ_i²
-        - Fused_probability = Σ(Weight_i × P_i) / Σ(Weight_i)
-        - Fused_std = 1 / √(Σ(Weight_i))
+        - Weight_i = 1 / sigma_i2
+        - Fused_probability = SUM(Weight_i * P_i) / SUM(Weight_i)
+        - Fused_std = 1 / sqrt(SUM(Weight_i))
         
         Args:
             readings: List of SensorReading objects
@@ -399,8 +399,8 @@ class DroneVerificationSystem:
         measurement.sensor_readings.append(auditor_reading_obj)
         
         print(f"[SENSOR FUSION] Area {area_id} verification complete")
-        print(f"  Original (faulty) reading: {original_reading.probability:.3f} (σ={original_reading.noise_std:.3f})")
-        print(f"  Auditor reading: {auditor_reading:.3f} (σ={auditor_noise:.3f})")
+        print(f"  Original (faulty) reading: {original_reading.probability:.3f} (sigma={original_reading.noise_std:.3f})")
+        print(f"  Auditor reading: {auditor_reading:.3f} (sigma={auditor_noise:.3f})")
         print(f"  Fused probability: {fused_prob:.3f}")
         print(f"  Fused std dev: {fused_std:.3f}")
         print(f"  Confidence: {measurement.confidence:.3f}")
@@ -506,7 +506,7 @@ def test_fault_detection():
     fused_prob, fused_std = SensorFusion.inverse_variance_fusion(readings)
     print(f"  Individual readings:")
     for r in readings:
-        print(f"    Drone {r.drone_id}: {r.probability:.3f} (σ={r.noise_std:.3f})")
+        print(f"    Drone {r.drone_id}: {r.probability:.3f} (sigma={r.noise_std:.3f})")
     print(f"  Fused probability: {fused_prob:.3f}")
     print(f"  Fused std dev: {fused_std:.3f}")
     

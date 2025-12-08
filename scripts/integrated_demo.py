@@ -206,7 +206,7 @@ class IntegratedDroughtMonitoringSystem:
                 
                 # Log measurement
                 status_str = "FAULTY" if is_faulty_sensor else "GOOD"
-                print(f"  Drone {drone_id}: {measured_prob:.3f} ({status_str}, σ={drone.sensor_noise:.4f})")
+                print(f"  Drone {drone_id}: {measured_prob:.3f} ({status_str}, sigma={drone.sensor_noise:.4f})")
                 
                 # Track faulty readings
                 if is_faulty_sensor:
@@ -248,7 +248,7 @@ class IntegratedDroughtMonitoringSystem:
             auditor_prob = area.drought_probability + np.random.normal(0, auditor_noise)
             auditor_prob = np.clip(auditor_prob, 0.05, 0.95)
             
-            print(f"  Auditor {auditor_id} reading: {auditor_prob:.3f} (σ={auditor_noise:.4f})")
+            print(f"  Auditor {auditor_id} reading: {auditor_prob:.3f} (sigma={auditor_noise:.4f})")
             
             # Merge auditor verification
             fused_prob = self.verification_system.merge_auditor_verification(
@@ -331,7 +331,7 @@ def main():
     # Phase 5: Report
     system.generate_mission_report()
     
-    print("\n✓ Demo complete!\n")
+    print("\n[CHECK] Demo complete!\n")
 
 
 if __name__ == "__main__":

@@ -273,7 +273,7 @@ def build_allocation_report(log_path, areas_cfg, area_profiles, allocation, full
         lines.append('w_faulty = 1 / (0.525**2) = 3.628')
         lines.append('w_auditor = 1 / (0.15**2) = 44.444')
         lines.append('')
-        lines.append('fused = (3.628 × 0.843 + 44.444 × 0.214) / (3.628 + 44.444)')
+        lines.append('fused = (3.628 * 0.843 + 44.444 * 0.214) / (3.628 + 44.444)')
         lines.append('      = (3.058 + 9.511) / 48.072')
         lines.append('      = 0.261  # 26.1%')
         for entry in corrections:
@@ -478,7 +478,7 @@ class ExplorerDrone:
                         self.stop_motion()
                         if not self.arrival_announced:
                             rospy.loginfo(
-                                f"✓ Drone {self.drone_id} drought assessment at {self.farm_name} | "
+                                f"[CHECK] Drone {self.drone_id} drought assessment at {self.farm_name} | "
                                 f"model {self.actual_probability*100:.1f}% vs onboard {self.measured_probability*100:.1f}% "
                                 f"(error {self.risk_error_pct:+.2f}%)"
                             )

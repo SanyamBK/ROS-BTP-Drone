@@ -157,6 +157,32 @@ Detailed logs capture:
 - Corrected risk estimates
 - Mission outcomes
 
+## 🧠 Drought Monitoring Implementation
+Based on **"DroughtCast: A Machine Learning Forecast of the United States Drought Monitor"** (Brust et al., 2021).
+
+### Modules
+1. **Drought Probability Model**: Estimates risk using Rainfall Deficit, Soil Moisture, Vegetation Stress, etc.
+2. **Sensor Fault Detection**: Uses statistical hypothesis testing to identify malfunctioning sensors.
+3. **Sensor Fusion**: Combines multiple readings using inverse-variance weighting.
+4. **Dynamic Allocation**: Prioritizes high-risk areas and deploys auditors to verify faults.
+
+### Python Examples
+**Generate Risk Rankings:**
+```python
+from area_allocation import AreaPrioritizer, Area
+areas = [Area("wheat", 0.85), Area("corn", 0.45)]
+ranked = AreaPrioritizer().rank_areas_by_risk(areas)
+# Output: wheat (85%), corn (45%)
+```
+
+**Detect Faulty Sensors:**
+```python
+from sensor_fault_detection import SensorFaultDetector
+detector = SensorFaultDetector()
+is_faulty, _, _ = detector.detect_fault(model_prob=0.65, sensor_prob=0.25, noise=0.05)
+# Output: True (deviation too high)
+```
+
 ## 📦 Prerequisites
 
 ### Required Software

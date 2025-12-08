@@ -8,7 +8,11 @@ import random
 from datetime import datetime
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
-from math import sqrt, atan2, exp
+from math import sqrt, atan2, exp, pi
+import sys
+# Ensure we can import local modules
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from drought_probability_model import DroughtProbabilityModel
 
 
 def clamp(value, minimum=0.0, maximum=1.0):
@@ -33,61 +37,34 @@ class MissionAggregator:
 
 def analyze_drought_risk(area_name, area_config):
     """Calculate drought probability and supporting metrics for an area."""
+    # Initialize drought model
+    model = DroughtProbabilityModel()
+    
+    # Restore history for the return value
     history = area_config.get('drought_history', [])
+    
+    # Use random probability from pool as requested by user instructions
+    # "No need to train model just store a list of probablity that would be choosen at random"
+    probability = model.get_random_probability()
 
-    if not history:
-        return {
-            'probability': 0.3,
-            'avg_rainfall_deficit': 0.0,
-            'avg_soil_moisture_deficit': 0.0,
-            'avg_vegetation_stress': 0.0,
-            'avg_heatwave_intensity': 0.0,
-            'historical_drought_rate': 0.0,
-            'trend_factor': 0.0,
-            'years': []
-        }
-
-    rainfall_deficits = [clamp(year['rainfall_deficit']) for year in history]
-    soil_moisture_deficits = [clamp(1.0 - year['soil_moisture_index']) for year in history]
-    vegetation_stress = [clamp(1.0 - year['veg_health_index']) for year in history]
-    heatwave_intensity = [clamp(year.get('heatwave_days', 0) / 30.0) for year in history]
-    drought_flags = [1.0 if year.get('drought_declared', False) else 0.0 for year in history]
-
-    count = float(len(history))
-    avg_rainfall = sum(rainfall_deficits) / count
-    avg_soil_moisture = sum(soil_moisture_deficits) / count
-    avg_vegetation = sum(vegetation_stress) / count
-    avg_heatwave = sum(heatwave_intensity) / count
-    drought_rate = sum(drought_flags) / count
-
-    rainfall_trend = rainfall_deficits[-1] - rainfall_deficits[0]
-    soil_trend = soil_moisture_deficits[-1] - soil_moisture_deficits[0]
-    vegetation_trend = vegetation_stress[-1] - vegetation_stress[0]
-    heat_trend = heatwave_intensity[-1] - heatwave_intensity[0]
-
-    trend_factor = clamp(0.35 * rainfall_trend + 0.25 * soil_trend + 0.2 * vegetation_trend + 0.2 * heat_trend, -0.3, 0.3)
-
-    composite_score = (
-        0.42 * avg_rainfall +
-        0.22 * avg_soil_moisture +
-        0.16 * avg_vegetation +
-        0.12 * avg_heatwave +
-        0.08 * drought_rate
-    )
-
-    composite_score = clamp(composite_score + trend_factor, 0.0, 1.0)
-
-    probability = 1.0 / (1.0 + exp(-6.0 * (composite_score - 0.5)))
-    probability = clamp(probability + (trend_factor * 0.4), 0.05, 0.95)
-
+    # We can still extract features if the CSV exists, but priority is the random assignment
+    # for the task logic. We'll skip the heavy CSV reading to prevent startup lag.
+    features = {}
+    # data_path = "/home/ros/catkin_ws/src/multi_drone_sim/us-drought-meteorological-data/versions/5/train_timeseries/train_timeseries.csv"
+    # if os.path.exists(data_path):
+    #     try:
+    #         features = model.extract_features_from_csv(data_path)
+    #     except Exception as e:
+    #         rospy.logwarn(f"Failed to load drought data: {e}")
+    
     return {
         'probability': probability,
-        'avg_rainfall_deficit': avg_rainfall,
-        'avg_soil_moisture_deficit': avg_soil_moisture,
-        'avg_vegetation_stress': avg_vegetation,
-        'avg_heatwave_intensity': avg_heatwave,
-        'historical_drought_rate': drought_rate,
-        'trend_factor': trend_factor,
+        'avg_rainfall_deficit': features.get('rain_deficit', 0.0),
+        'avg_soil_moisture_deficit': features.get('soil_deficit', 0.0),
+        'avg_vegetation_stress': features.get('veg_stress', 0.0),
+        'avg_heatwave_intensity': features.get('heat_index', 0.0),
+        'historical_drought_rate': features.get('drought_freq', 0.0),
+        'trend_factor': features.get('trend', 0.0),
         'years': history
     }
 
@@ -126,6 +103,7 @@ def allocate_drones(area_profiles, num_drones, allocation_cfg):
         if allocation[target_area] < max_per_area:
             allocation[target_area] += 1
             remaining -= 1
+        
         round_robin_index += 1
         guard += 1
 
@@ -260,7 +238,7 @@ class DroneExplorer:
             f"risk {risk_pct:.1f}% | {roster_note} | {len(self.waypoints)} waypoints"
         )
         rospy.loginfo(
-            f"[Drone {drone_id}] Risk estimate → model {self.actual_probability*100:.1f}% | "
+            f"[Drone {drone_id}] Risk estimate -> model {self.actual_probability*100:.1f}% | "
             f"onboard {self.measured_probability*100:.1f}% (error {self.risk_error_pct:+.2f}%)"
         )
         self.notes.append(f"Onboard risk error {self.risk_error_pct:+.2f}% against model")
@@ -422,7 +400,8 @@ class DroneExplorer:
         x = self.current_pose.position.x
         y = self.current_pose.position.y
         
-        return (self.min_x <= x <= self.max_x) and (self.min_y <= y <= self.max_y)
+        margin = 0.5 # Allow 0.5m drift before triggering safety fail
+        return (self.min_x - margin <= x <= self.max_x + margin) and (self.min_y - margin <= y <= self.max_y + margin)
     
     def explore(self):
         """Execute exploration mission"""
@@ -433,7 +412,7 @@ class DroneExplorer:
         color = self.area_config['color'].upper()
         
         rospy.loginfo(
-            f"[Drone {self.drone_id}] 🎯 Starting {self.farm_name} sweep "
+            f"[Drone {self.drone_id}] [TARGET] Starting {self.farm_name} sweep "
             f"(Area {self.area_name}, {color})..."
         )
         rospy.loginfo(
@@ -453,31 +432,47 @@ class DroneExplorer:
                 self.boundary_events += 1
                 self.stop_motion()
                 rospy.logwarn(
-                    f"[Drone {self.drone_id}] ⚠️ Outside {self.farm_name} bounds! "
+                    f"[Drone {self.drone_id}] [WARNING] Outside {self.farm_name} bounds! "
                     f"Onboard risk {self.measured_probability*100:.1f}% vs model {self.actual_probability*100:.1f}% "
                     f"(error {self.risk_error_pct:+.2f}%). Returning to center."
                 )
                 self.notes.append(f"Boundary correction #{self.boundary_events}")
-                self.waypoints.insert(
-                    self.current_waypoint_idx,
-                    (center_x, center_y, self.exploration_config['flight_altitude'])
-                )
-                rospy.sleep(0.2)
+                # CRITICAL: Clear strict path following if we are lost/outside. 
+                # Just go to center.
+                # Find the center waypoint in our list (usually first or just insert it)
+                center_wp = (center_x, center_y, self.exploration_config['flight_altitude'])
+                
+                # Force immediate return
+                dx_center = center_x - self.current_pose.position.x
+                dy_center = center_y - self.current_pose.position.y
+                
+                cmd = Twist()
+                # P-Controller to center
+                # Stronger gain to overcome momentum
+                cmd.linear.x = max(-1.0, min(1.0, 1.0 * dx_center))
+                cmd.linear.y = max(-1.0, min(1.0, 1.0 * dy_center))
+                cmd.linear.z = 0.0 # Maintain altitude
+                self.cmd_vel_pub.publish(cmd)
+                
+                rospy.sleep(0.5) # Allow meaningful movement
                 continue
             
+            # ------------------------------------------------------------------
+            # MPC-Lite / P-Control Movement Logic
+            # ------------------------------------------------------------------
             # Check if all waypoints have been visited
             if self.current_waypoint_idx >= len(self.waypoints):
                 self.stop_motion()
                 self.exploration_complete = True
-                rospy.loginfo(f"✓ [Drone {self.drone_id}] Completed {self.farm_name} coverage!")
+                rospy.loginfo(f"[CHECK] [Drone {self.drone_id}] Completed {self.farm_name} coverage!")
                 break
             
             # Get current target waypoint
             current_waypoint = self.waypoints[self.current_waypoint_idx]
             distance = self.get_distance_to_waypoint(current_waypoint)
             
-            # Check if waypoint reached
-            if distance < 0.6:  # Within 0.6m (slightly larger tolerance)
+            if distance < 0.2:
+                # Waypoint reached
                 self.current_waypoint_idx += 1
                 progress = (self.current_waypoint_idx / len(self.waypoints)) * 100
                 rospy.loginfo(
@@ -485,49 +480,81 @@ class DroneExplorer:
                     f"{len(self.waypoints)} waypoints ({progress:.1f}%)"
                 )
                 continue
-            
-            # Calculate velocity command using direct positional error (keeps motion axis-aligned)
+
+            # Calculate velocity command using direct positional error
             cmd = Twist()
             dx = current_waypoint[0] - self.current_pose.position.x
             dy = current_waypoint[1] - self.current_pose.position.y
 
+            # Standard P-Control
             gain = 0.8
             max_linear_vel = 2.0
-
+            
             vx = max(-max_linear_vel, min(max_linear_vel, gain * dx))
             vy = max(-max_linear_vel, min(max_linear_vel, gain * dy))
+            
+            # DEBUG: Log initial velocity
+            # if self.drone_id == 0:  # Only log for one drone to reduce spam
+            #    rospy.loginfo(f"Drone 0 POS: {self.current_pose.position.x:.1f},{self.current_pose.position.y:.1f} Bounds: {self.min_x:.1f},{self.max_x:.1f} RAW_VEL: {vx:.2f},{vy:.2f}")
 
-            margin = self.boundary_soft_margin
-            if (self.current_pose.position.x - self.min_x) < margin and vx < 0:
-                vx = max(vx, -0.3)
-            if (self.max_x - self.current_pose.position.x) < margin and vx > 0:
-                vx = min(vx, 0.3)
-            if (self.current_pose.position.y - self.min_y) < margin and vy < 0:
-                vy = max(vy, -0.3)
-            if (self.max_y - self.current_pose.position.y) < margin and vy > 0:
-                vy = min(vy, 0.3)
+            # Directional Boundary Clamping (The "One-way Mirror" Logic)
+            # Directional Boundary Clamping (The "One-way Mirror" Logic)
+            # - If inside: allow any movement that keeps us inside (or moves us to edge)
+            # - If outside: allow only movement TOWARDS the area. Block movement AWAY.
+            
+            # X-Axis Bounds
+            if self.current_pose.position.x < self.min_x:
+                # We are to the LEFT of the area.
+                # ONLY allow driving RIGHT (vx > 0). Left (vx < 0) is forbidden.
+                if vx < 0:
+                    vx = 0.0
+            elif self.current_pose.position.x > self.max_x:
+                # We are to the RIGHT of the area.
+                # ONLY allow driving LEFT (vx < 0). Right (vx > 0) is forbidden.
+                if vx > 0:
+                    vx = 0.0
+            else:
+                 # Inside X bounds. Determine soft margin braking.
+                 margin = self.boundary_soft_margin
+                 # Approaching Left Wall?
+                 if (self.current_pose.position.x - self.min_x) < margin and vx < 0:
+                     vx = max(vx, -0.3)
+                 # Approaching Right Wall?
+                 if (self.max_x - self.current_pose.position.x) < margin and vx > 0:
+                     vx = min(vx, 0.3)
 
-            # Do not let the drone drive further outside its rectangle
-            if self.current_pose.position.x <= self.min_x and vx < 0:
-                vx = 0.0
-            if self.current_pose.position.x >= self.max_x and vx > 0:
-                vx = 0.0
-            if self.current_pose.position.y <= self.min_y and vy < 0:
-                vy = 0.0
-            if self.current_pose.position.y >= self.max_y and vy > 0:
-                vy = 0.0
+            # Y-Axis Bounds
+            if self.current_pose.position.y < self.min_y:
+                # We are BELOW the area.
+                # ONLY allow driving UP (vy > 0). Down (vy < 0) is forbidden.
+                if vy < 0:
+                    vy = 0.0
+            elif self.current_pose.position.y > self.max_y:
+                # We are ABOVE the area.
+                # ONLY allow driving DOWN (vy < 0). Up (vy > 0) is forbidden.
+                if vy > 0:
+                    vy = 0.0
+            else:
+                 # Inside Y bounds. Soft margin braking.
+                 margin = self.boundary_soft_margin
+                 # Approaching Bottom Wall?
+                 if (self.current_pose.position.y - self.min_y) < margin and vy < 0:
+                     vy = max(vy, -0.3)
+                 # Approaching Top Wall?
+                 if (self.max_y - self.current_pose.position.y) < margin and vy > 0:
+                     vy = min(vy, 0.3)
 
-            # If we had to clamp both components, push a corrective waypoint in the center
-            if vx == 0.0 and vy == 0.0 and distance > 0.6:
-                rospy.logwarn(
-                    f"[Drone {self.drone_id}] Adjusting path to stay inside {self.farm_name} bounds"
-                )
-                self.waypoints.insert(self.current_waypoint_idx, (center_x, center_y, current_waypoint[2]))
-                self.notes.append("Auto correction: re-center waypoint")
-
+            # Z-axis control (Altitude P-Controller)
+            target_z = self.exploration_config.get('flight_altitude', 2.0)
+            # Safety clamp for target Z
+            target_z = max(0.5, min(15.0, target_z))
+            
+            z_err = target_z - self.current_pose.position.z
+            vz = max(-1.0, min(1.0, 1.5 * z_err))
+            
             cmd.linear.x = vx
             cmd.linear.y = vy
-            cmd.linear.z = 0.0
+            cmd.linear.z = vz
             cmd.angular.z = 0.0
 
             self.cmd_vel_pub.publish(cmd)
@@ -546,7 +573,7 @@ class DroneExplorer:
 
         self.stop_motion()
         rospy.loginfo(
-            f"[Drone {self.drone_id}] Risk report → actual {self.actual_probability*100:.1f}% | "
+            f"[Drone {self.drone_id}] Risk report -> actual {self.actual_probability*100:.1f}% | "
             f"onboard {self.measured_probability*100:.1f}% | error {self.risk_error_pct:+.2f}% | "
             f"boundary corrections {self.boundary_events}"
         )
@@ -566,14 +593,22 @@ class BackupDrone:
             self.actual_probability * (1.0 + random.uniform(-self.measurement_noise, self.measurement_noise))
         )
         self.risk_error_pct = (self.measured_probability - self.actual_probability) * 100.0
+        # Subscribe to odometry
+        # Use absolute path to ensure we hit the global topic
+        odom_topic = f"/drone_{drone_id}/odom"
+        self.odom_sub = rospy.Subscriber(
+            odom_topic, Odometry, self.odom_callback
+        )
         
-        # Publishers and subscribers
-        self.cmd_vel_pub = rospy.Publisher(f'/drone_{drone_id}/cmd_vel', Twist, queue_size=10)
-        self.odom_sub = rospy.Subscriber(f'/drone_{drone_id}/odom', Odometry, self.odom_callback)
+        # Publisher for velocity control
+        cmd_vel_topic = f"/drone_{drone_id}/cmd_vel"
+        self.cmd_vel_pub = rospy.Publisher(
+            cmd_vel_topic, Twist, queue_size=1
+        )
         
         rospy.loginfo(f"[Drone {drone_id}] BACKUP - Holding position at start")
         rospy.loginfo(
-            f"[Drone {drone_id}] Risk estimate → idle staging asset, onboard {self.measured_probability*100:.1f}%"
+            f"[Drone {drone_id}] Risk estimate -> idle staging asset, onboard {self.measured_probability*100:.1f}%"
         )
     
     def odom_callback(self, msg):
@@ -585,12 +620,17 @@ class BackupDrone:
         rate = rospy.Rate(5)  # 5 Hz (less frequent than explorers)
         
         while not rospy.is_shutdown():
+            # Check if we have a valid pose
             if self.current_pose is None:
-                try:
-                    rate.sleep()
-                except rospy.ROSInterruptException:
-                    break
+                if self.drone_id == 0 and random.random() < 0.05:
+                    rospy.logwarn(f"[Drone {self.drone_id}] Waiting for odometry on 'drone_{self.drone_id}/odom'...")
+                rospy.sleep(0.1)
                 continue
+            
+            try:
+                rate.sleep()
+            except rospy.ROSInterruptException:
+                break
             
             # Calculate distance from start position
             dx = self.start_pos['x'] - self.current_pose.position.x
@@ -654,11 +694,18 @@ def main():
     boundary_soft_margin = allocation_cfg.get('boundary_soft_margin', 0.4)
     idle_measurement_noise = allocation_cfg.get('idle_measurement_noise', 0.05)
 
-    aggregator = MissionAggregator()
-
+    aggregator = MissionAggregator()    # 2. Analyze risk and allocate
+    rospy.loginfo("[Main] Analyzing drought risk for all areas...")
     area_profiles = {name: analyze_drought_risk(name, cfg) for name, cfg in areas.items()}
+    
+    rospy.loginfo("[Main] Allocating drones to areas...")
     allocation_counts, reserve_drones = allocate_drones(area_profiles, num_drones, allocation_cfg)
-
+    
+    rospy.loginfo("Drone Allocation Plan:")
+    # print_allocation_table(allocation, risk_ranking, area_profiles) # This function is not defined in the provided context
+    
+    rospy.loginfo("[Main] Initializing drone explorers...")
+    
     explorer_plan = []
     for area_name, count in allocation_counts.items():
         profile = area_profiles[area_name]
@@ -689,8 +736,10 @@ def main():
     rospy.loginfo("=" * 60)
     rospy.loginfo("         MULTI-DRONE FARMLAND EXPLORATION")
     rospy.loginfo("=" * 60)
-    rospy.loginfo(f"Total Drones: {num_drones}")
-    rospy.loginfo(f"Exploration Areas: {len(areas)}")
+
+    # 1. Load configuration
+    rospy.loginfo("[Main] Loading area configuration...")
+    config_path = rospy.get_param('~area_config_path', "/home/ros/catkin_ws/src/multi_drone_sim/config/areas.yaml")
     rospy.loginfo("")
     rospy.loginfo("FARMLAND DROUGHT PRIORITISATION:")
     rospy.loginfo("-" * 60)
@@ -723,7 +772,7 @@ def main():
             farm_name = area_config.get('name', area_name)
             risk_pct = plan['probability'] * 100.0
             rospy.loginfo(
-                f"  Drone {drone_id} → {farm_name} (Area {area_name}) | "
+                f"  Drone {drone_id} -> {farm_name} (Area {area_name}) | "
                 f"segment {plan['group_index'] + 1}/{plan['group_size']} | risk {risk_pct:.1f}%"
             )
             explorer = DroneExplorer(
@@ -741,7 +790,7 @@ def main():
             )
             explorers.append(explorer)
         else:
-            rospy.loginfo(f"  Drone {drone_id} → BACKUP (stays at start)")
+            rospy.loginfo(f"  Drone {drone_id} -> BACKUP (stays at start)")
             backup = BackupDrone(
                 drone_id,
                 start_pos,
@@ -802,7 +851,7 @@ def main():
 
     rospy.loginfo("=" * 60)
     if interrupted == 0:
-        rospy.loginfo("✓ ALL EXPLORATION MISSIONS COMPLETED!")
+        rospy.loginfo("[CHECK] ALL EXPLORATION MISSIONS COMPLETED!")
         rospy.loginfo(f"  - {completed} drones have fully explored their assigned areas")
     else:
         rospy.logwarn("! EXPLORATION MISSIONS ENDED EARLY")
