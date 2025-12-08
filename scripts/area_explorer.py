@@ -8,7 +8,8 @@ import random
 from datetime import datetime
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
-from math import sqrt, atan2, exp, pi
+from math import sqrt, atan2, exp, pi, cos, sin
+from tf.transformations import euler_from_quaternion
 import sys
 # Ensure we can import local modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -431,10 +432,9 @@ class DroneExplorer:
             if self.current_waypoint_idx > 0 and not self.is_within_area_bounds():
                 self.boundary_events += 1
                 self.stop_motion()
-                rospy.logwarn(
+                rospy.logwarn_throttle(5.0,
                     f"[Drone {self.drone_id}] [WARNING] Outside {self.farm_name} bounds! "
-                    f"Onboard risk {self.measured_probability*100:.1f}% vs model {self.actual_probability*100:.1f}% "
-                    f"(error {self.risk_error_pct:+.2f}%). Returning to center."
+                    f"Returning to center."
                 )
                 self.notes.append(f"Boundary correction #{self.boundary_events}")
                 # CRITICAL: Clear strict path following if we are lost/outside. 
@@ -443,14 +443,24 @@ class DroneExplorer:
                 center_wp = (center_x, center_y, self.exploration_config['flight_altitude'])
                 
                 # Force immediate return
-                dx_center = center_x - self.current_pose.position.x
-                dy_center = center_y - self.current_pose.position.y
+                dx_global = center_x - self.current_pose.position.x
+                dy_global = center_y - self.current_pose.position.y
+                
+                # Get current yaw
+                orientation_q = self.current_pose.orientation
+                orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+                (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+                
+                # Rotate global vector to body frame
+                # Body_X (Forward) = dx*cos(yaw) + dy*sin(yaw)
+                # Body_Y (Left)    = -dx*sin(yaw) + dy*cos(yaw)
+                vx_body = dx_global * cos(yaw) + dy_global * sin(yaw)
+                vy_body = -dx_global * sin(yaw) + dy_global * cos(yaw)
                 
                 cmd = Twist()
-                # P-Controller to center
-                # Stronger gain to overcome momentum
-                cmd.linear.x = max(-1.0, min(1.0, 1.0 * dx_center))
-                cmd.linear.y = max(-1.0, min(1.0, 1.0 * dy_center))
+                # P-Controller in body frame
+                cmd.linear.x = max(-1.0, min(1.0, 1.0 * vx_body))
+                cmd.linear.y = max(-1.0, min(1.0, 1.0 * vy_body))
                 cmd.linear.z = 0.0 # Maintain altitude
                 self.cmd_vel_pub.publish(cmd)
                 
