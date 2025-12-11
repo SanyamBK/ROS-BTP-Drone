@@ -35,6 +35,6 @@ Based on the research directives from **Tanmoy Kundu (Advisor)**, the next phase
 ---
 
 ### 4. Action Items
-- [ ] Create `scripts/uwb_simulator.py` (simulating range inputs)
-- [ ] Create `scripts/swarm_localization.py` (implementing INFOCOM logic)
-- [ ] Create `scripts/energy_planner.py` (implementing ICRA logic)
+- [x] Create `scripts/uwb_simulator.py` (simulating range inputs)
+- [x] Create `scripts/swarm_localization.py` (implementing INFOCOM logic)
+- [x] Create `scripts/energy_planner.py` (implementing ICRA logic)
