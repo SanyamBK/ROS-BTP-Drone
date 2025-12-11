@@ -3,15 +3,15 @@
 
 Based on the research directives from **Tanmoy Kundu (Advisor)**, the next phase of development focuses on implementing specific algorithms from the provided literature.
 
-### 1. Foundation
-**Paper:** *Low-Cost Multi-UAV Testbed* (Kundu et al., IROS 2024)
-*   **Status:** ✅ **Implemented** (Current Simulation Architecture)
-*   **Role:** Base architecture for swarm behavior and simulation environment.
+### 1. Foundation (Theoretical Basis)
+**Paper:** *Multi-Robot Communication-Aware Cooperative Belief Space Planning with Inconsistent Beliefs: An Action-Consistent Approach* (Kundu et al., IROS 2024)
+*   **Status:** ✅ **Architecture Implemented** (Basic Swarm Setup)
+*   **Role:** Defines the cooperative planning framework. Using "Action-Consistent" coordination to handle inconsistent beliefs (e.g., sensor mismatch) between drones.
 
 ---
 
 ### 2. Swarm Ranging Protocol (Primary Goal)
-**Paper:** *Swarm-ranging: A Range-based Swarm Localization System* (INFOCOM 2021)
+**Paper:** *Ultra-Wideband Swarm Ranging* (Shan et al., INFOCOM 2021)
 *   **Objective:** Implement a decentralized, range-based relative localization system using Ultra-Wideband (UWB) logic.
 *   **Current State:** Drones rely on absolute GPS (Global `odom` topic).
 *   **Implementation Plan:**

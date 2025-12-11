@@ -6,6 +6,46 @@ import os
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from math import sqrt, atan2, pi
+from std_msgs.msg import Float32
+
+class Battery:
+    """
+    Simulates LiPo battery discharge.
+    Model based on: Karapetyan et al., ICRA 2024 (simplified)
+    """
+    def __init__(self, capacity_mah=3000, start_voltage=12.6):
+        self.capacity_mah = capacity_mah
+        self.current_charge = capacity_mah
+        self.voltage = start_voltage
+        
+        # Power consumption params (Amps)
+        self.idle_current = 0.5  # Avionics only
+        self.hover_current = 15.0 # Motors hovering
+        self.flight_current_slope = 5.0 # Amps per m/s velocity
+        
+    def consume(self, velocity, dt):
+        """
+        Update charge based on flight state.
+        velocity: current speed in m/s
+        dt: time step in seconds
+        """
+        if self.current_charge <= 0:
+            return 0.0
+            
+        # Current draw model: I = I_hover + k * v
+        # Ideally: Power = Thrust * Velocity ... simplified here for simulation
+        draw = self.hover_current + (self.flight_current_slope * velocity)
+        if velocity < 0.1: # Near stationary/hover
+            draw = self.hover_current
+            
+        # discharge (Ah) = draw (A) * dt (h)
+        drain_mah = draw * (dt / 3600.0) * 1000.0
+        self.current_charge -= drain_mah
+        
+        return self.get_percentage()
+        
+    def get_percentage(self):
+        return max(0.0, (self.current_charge / self.capacity_mah) * 100.0)
 
 class DroneController:
     def __init__(self, drone_id, target_area):
@@ -16,7 +56,12 @@ class DroneController:
         
         # Publishers and subscribers
         self.cmd_vel_pub = rospy.Publisher(f'/drone_{drone_id}/cmd_vel', Twist, queue_size=10)
+        self.battery_pub = rospy.Publisher(f'/drone_{drone_id}/battery', Float32, queue_size=10)
         self.odom_sub = rospy.Subscriber(f'/drone_{drone_id}/odom', Odometry, self.odom_callback)
+        
+        # Battery Integration
+        self.battery = Battery(capacity_mah=4500) # TB47/TB48 style
+        self.last_update_time = rospy.Time.now()
         
         rospy.loginfo(f"Drone {drone_id} controller initialized. Target: {target_area}")
     
@@ -63,6 +108,20 @@ class DroneController:
                 rospy.loginfo(f"Drone {self.drone_id} reached area {self.target_area}!")
                 break
             
+            # Update Battery
+            current_time = rospy.Time.now()
+            dt = (current_time - self.last_update_time).to_sec()
+            self.last_update_time = current_time
+            
+            # Simple speed estimate
+            speed = distance * 0.5 # since cmd.linear.x = distance * 0.5 below
+            
+            bat_pct = self.battery.consume(speed, dt)
+            self.battery_pub.publish(bat_pct)
+            
+            if bat_pct < 20.0:
+                 rospy.logwarn_throttle(10, f"Drone {self.drone_id} Low Battery: {bat_pct:.1f}%")
+
             # Calculate velocity command
             cmd = Twist()
             
