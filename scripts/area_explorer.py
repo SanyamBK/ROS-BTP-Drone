@@ -408,7 +408,7 @@ class DroneExplorer:
         x = self.current_pose.position.x
         y = self.current_pose.position.y
         
-        margin = 0.5 # Allow 0.5m drift before triggering safety fail
+        margin = 1.0 # Allow 1.0m drift before triggering safety fail (User Requested Tuning)
         return (self.min_x - margin <= x <= self.max_x + margin) and (self.min_y - margin <= y <= self.max_y + margin)
     
     def explore(self):
