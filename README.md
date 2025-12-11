@@ -200,6 +200,7 @@ sudo apt-get install ros-noetic-rviz
 pip3 install pyyaml numpy
 # Required for LSTM Model:
 pip3 install torch --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+pip3 install scipy
 ```
 
 ## 🚀 Installation
