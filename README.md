@@ -51,10 +51,16 @@ Climate change is increasing the frequency and severity of agricultural droughts
 - **Fault Tolerance**: Automatic detection of sensor failures using statistical deviation from model predictions.
 - **Swarm Ranging (New)**: Decentralized UWB-based localization from *INFOCOM 2021*.
 - **Energy-Aware Planning (New)**: Cooperative recharging with mobile UGV station from *ICRA 2024*.
-- **Fallback Mechanism**: Gracefully degrades to heuristic model if model/deps missing
-- **Research Basis**: "DroughtCast" (Brust et al., 2021)
+
+## 📚 Research Foundation
+The system's architecture is built upon the following key research papers:
+1.  **Foundation**: *Multi-Robot Communication-Aware Cooperative Belief Space Planning* (Kundu et al., IROS 2024).
+2.  **Swarm Ranging**: *Ultra-Wideband Swarm Ranging* (Shan et al., INFOCOM 2021).
+3.  **Energy Planning**: *Coverage Planning with a Mobile Recharging UGV* (Karapetyan et al., ICRA 2024).
 
 ## 🛠️ Tech Stack
+- **Fallback Mechanism**: Gracefully degrades to heuristic model if model/deps missing
+- **Research Basis**: "DroughtCast" (Brust et al., 2021)
 
 ### 🎯 Adaptive Resource Allocation
 - **Priority-based deployment** to highest-risk areas
