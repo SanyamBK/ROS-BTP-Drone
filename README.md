@@ -48,8 +48,13 @@ Climate change is increasing the frequency and severity of agricultural droughts
   - Sequence-to-One architecture (90-day lookback)
   - inputs: Precipitation, Soil Moisture (QV2M), Skin Temp, etc.
 - **Probabilistic forecasting** (0.0 - 1.0 Risk Score)
+- **Fault Tolerance**: Automatic detection of sensor failures using statistical deviation from model predictions.
+- **Swarm Ranging (New)**: Decentralized UWB-based localization from *INFOCOM 2021*.
+- **Energy-Aware Planning (New)**: Cooperative recharging with mobile UGV station from *ICRA 2024*.
 - **Fallback Mechanism**: Gracefully degrades to heuristic model if model/deps missing
 - **Research Basis**: "DroughtCast" (Brust et al., 2021)
+
+## 🛠️ Tech Stack
 
 ### 🎯 Adaptive Resource Allocation
 - **Priority-based deployment** to highest-risk areas
@@ -511,16 +516,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Drought Monitoring Techniques](https://www.drought.gov/topics/monitoring)
 
 ## 🔮 Future Enhancements
-
-- [ ] Real-time weather data integration
-- [ ] Advanced path planning (A*, RRT)
-- [ ] Multi-objective optimization
+- [x] **LSTM Integration**: Replace heuristic model with Deep Learning (Done).
+- [x] **Swarm Ranging**: Implement decentralized UWB protocol (Done).
+- [x] **Energy Planning**: Implement UGV rendezvous reasoning (Done).
+- [ ] **Hardware Deployment**: Port to Bitcraze Crazyflie 2.1 swarm for real-world field testing.
+- [ ] **Live Weather**: Connect to OpenWeatherMap API.
 - [ ] Real hardware deployment (DJI, Pixhawk)
 - [ ] Web-based dashboard for monitoring
 - [ ] Integration with satellite imagery
 - [ ] Collaborative SLAM for area mapping
 - [ ] Dynamic task reassignment mid-mission
-- [ ] Energy optimization for extended operations
 
 ---
 
