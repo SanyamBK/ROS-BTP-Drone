@@ -16,6 +16,7 @@ import math
 import csv
 import os
 import random
+import sys
 from typing import Dict, List, Tuple
 
 # Try to import torch for LSTM support
@@ -100,7 +101,8 @@ class DroughtProbabilityModel:
                 try:
                     self.lstm_model = DroughtLSTM()
                     # Map location to CPU since we are on VM
-                    self.lstm_model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+                    # weights_only=True suppresses the FutureWarning and is safer
+                    self.lstm_model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu'), weights_only=True))
                     self.lstm_model.eval()
                     print(f"[DroughtModel] Successfully loaded LSTM weights from {model_path}")
                 except Exception as e:
@@ -377,9 +379,9 @@ class DroughtProbabilityModel:
             features['trend'] = 0.5
             # Simplified trend: compare last 10 days to first 10 days of the window
             # using vegetation stress proxy (inverted temperature)
-            if temp and len(temp) > 20:
-                early_mean = calculate_mean(temp[:10])
-                late_mean = calculate_mean(temp[-10:])
+            if ts and len(ts) > 20:
+                early_mean = calculate_mean(ts[:10])
+                late_mean = calculate_mean(ts[-10:])
                 if late_mean > early_mean:
                     # Temp rising -> worsening
                      features['trend'] = 0.7
