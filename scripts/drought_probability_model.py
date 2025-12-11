@@ -18,6 +18,15 @@ import os
 import random
 from typing import Dict, List, Tuple
 
+# Try to import torch for LSTM support
+HAS_TORCH = False
+try:
+    import torch
+    from drought_lstm import DroughtLSTM
+    HAS_TORCH = True
+except ImportError:
+    pass
+
 # Sigmoid function implementation to replace scipy.special.expit
 def expit(x):
     try:
@@ -56,10 +65,8 @@ class DroughtProbabilityModel:
         """
         if seed is not None:
             random.seed(seed)
-        # If seed is None, it uses system time/random source
         
         # Pre-generated probabilities (no ML training needed)
-        # These represent: low risk, medium risk, high risk areas
         self.probability_pool = [
             0.15, 0.18, 0.22, 0.25, 0.28,  # Low risk (5-30%)
             0.35, 0.38, 0.42, 0.45, 0.48,  # Medium-low risk
@@ -79,6 +86,23 @@ class DroughtProbabilityModel:
         }
         
         self.feature_history = {}
+
+        # LSTM Model
+        self.lstm_model = None
+        if HAS_TORCH:
+            model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                                    'models', 'lstm_model.pth')
+            if os.path.exists(model_path):
+                try:
+                    self.lstm_model = DroughtLSTM()
+                    # Map location to CPU since we are on VM
+                    self.lstm_model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+                    self.lstm_model.eval()
+                    print(f"[DroughtModel] Successfully loaded LSTM weights from {model_path}")
+                except Exception as e:
+                    print(f"[DroughtModel] Error loading LSTM weights: {e}")
+            else:
+                print(f"[DroughtModel] LSTM weights not found at {model_path}")
         
     def get_random_probability(self) -> float:
         """
@@ -151,6 +175,83 @@ class DroughtProbabilityModel:
         prob = 0.05 + 0.90 * raw_prob
         
         return float(clip(prob, 0.05, 0.95))
+
+    def extract_raw_sequence(self, csv_path: str, lookback_days: int = 90) -> List[List[float]]:
+        """
+        Extract raw 90-day sequence of 6 features for LSTM input.
+        Columns: PRECTOT, QV2M, T2M_MAX, T2M_MIN, TS, PS
+        """
+        try:
+            import subprocess
+            import io
+            
+            # Read header
+            with open(csv_path, 'r') as f:
+                header_line = f.readline().strip()
+            
+            # Read last N lines
+            cmd = ['tail', '-n', str(lookback_days), csv_path]
+            tail_output = subprocess.check_output(cmd).decode('utf-8')
+            
+            virtual_csv = io.StringIO(f"{header_line}\n{tail_output}")
+            reader = csv.DictReader(virtual_csv)
+            rows = list(reader)
+            
+            if len(rows) < lookback_days:
+                # Not enough data
+                return []
+                
+            sequence = []
+            for row in rows:
+                # Parse 6 features safely
+                try:
+                    feats = [
+                        float(row.get('PRECTOT', 0)),
+                        float(row.get('QV2M', 0)),
+                        float(row.get('T2M_MAX', 0)),
+                        float(row.get('T2M_MIN', 0)),
+                        float(row.get('TS', 0)),
+                        float(row.get('PS', 0))
+                    ]
+                    sequence.append(feats)
+                except ValueError:
+                    continue
+            
+            # Ensure we have exactly lookback_days (take last N)
+            if len(sequence) > lookback_days:
+                sequence = sequence[-lookback_days:]
+            
+            return sequence
+            
+        except Exception as e:
+            print(f"[DroughtModel] Sequence extraction error: {e}")
+            return []
+
+    def predict_from_csv(self, csv_path: str) -> float:
+        """
+        Run LSTM inference on CSV data. Returns None if model not available.
+        """
+        if not HAS_TORCH or self.lstm_model is None:
+            return None
+            
+        try:
+            # Get raw sequence (90, 6)
+            seq = self.extract_raw_sequence(csv_path)
+            if not seq or len(seq) != 90:
+                return None
+            
+            # Convert to Tensor (1, 90, 6)
+            input_tensor = torch.tensor([seq], dtype=torch.float32)
+            
+            # Inference
+            with torch.no_grad():
+                prob = self.lstm_model(input_tensor).item()
+            
+            return float(clip(prob, 0.05, 0.95))
+            
+        except Exception as e:
+            print(f"[DroughtModel] Inference failure: {e}")
+            return None
     
     def extract_features_from_csv(self, csv_path: str, lookback_days: int = 90) -> Dict[str, float]:
         """

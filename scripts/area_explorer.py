@@ -44,19 +44,26 @@ def analyze_drought_risk(area_name, area_config):
     # Restore history for the return value
     history = area_config.get('drought_history', [])
     
-    # Use random probability from pool as requested by user instructions
-    # "No need to train model just store a list of probablity that would be choosen at random"
-    probability = model.get_random_probability()
+    # 1. Try LSTM Prediction (highest priority)
+    probability = None
+    data_path = "/home/ros/catkin_ws/src/multi_drone_sim/us-drought-meteorological-data/versions/5/train_timeseries/train_timeseries.csv"
+    
+    if os.path.exists(data_path):
+        probability = model.predict_from_csv(data_path)
+        if probability is not None:
+             rospy.loginfo(f"[{area_name}] Using Trained LSTM Model -> Risk: {probability:.1%}")
 
-    # We can still extract features if the CSV exists, but priority is the random assignment
-    # for the task logic. We'll skip the heavy CSV reading to prevent startup lag.
+    # 2. Fallback to Random Pool if LSTM failed (missing torch or model)
+    if probability is None:
+        probability = model.get_random_probability()
+
+    # Extract features for reporting (works regardless of LSTM)
     features = {}
-    # data_path = "/home/ros/catkin_ws/src/multi_drone_sim/us-drought-meteorological-data/versions/5/train_timeseries/train_timeseries.csv"
-    # if os.path.exists(data_path):
-    #     try:
-    #         features = model.extract_features_from_csv(data_path)
-    #     except Exception as e:
-    #         rospy.logwarn(f"Failed to load drought data: {e}")
+    if os.path.exists(data_path):
+        try:
+            features = model.extract_features_from_csv(data_path)
+        except Exception as e:
+            rospy.logwarn(f"Failed to extract features: {e}")
     
     return {
         'probability': probability,
