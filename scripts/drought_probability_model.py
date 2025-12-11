@@ -156,7 +156,7 @@ class DroughtProbabilityModel:
         """
         Extract drought features from meteorological CSV data.
         
-        Expected columns: PRECTOT, GWETTOP, T2M_MAX, T2M, TS, and derived NDVI
+        Expected columns: PRECTOT, QV2M, T2M_MAX, T2M_MIN, TS, PS
         
         Args:
             csv_path: Path to meteorological timeseries CSV
@@ -210,26 +210,25 @@ class DroughtProbabilityModel:
             else:
                 features['rain_deficit'] = 0.5
             
-            # 2. Soil Moisture Deficit
-            soil = get_col('GWETTOP')
-            if soil:
-                soil_max = max(soil) + 1e-6
-                soil_mean = calculate_mean(soil)
-                soil_deficit = 1.0 - (soil_mean / soil_max)
+            # 2. Moisture (QV2M as Soil Proxy)
+            moist = get_col('QV2M')
+            if moist:
+                moist_mean = calculate_mean(moist)
+                # Normalize typical specific humidity (0-0.02 kg/kg)
+                # Inverted: Low humidity = High Deficit
+                # 0.02 is a rough max
+                soil_deficit = 1.0 - (moist_mean / 0.02)
                 features['soil_deficit'] = float(clip(soil_deficit, 0, 1))
             else:
                 features['soil_deficit'] = 0.5
             
-            # 3. Vegetation Stress (VCI-inspired, simulated)
-            temp = get_col('TS')
-            if temp:
-                temp_min = min(temp)
-                temp_max = max(temp) + 1e-6
-                # Avoid division by zero if min == max
-                denom = temp_max - temp_min if (temp_max - temp_min) > 1e-6 else 1.0
-                
-                vci_values = [(t - temp_min) / denom for t in temp]
-                veg_stress = 1.0 - calculate_mean(vci_values)
+            # 3. Voltage/Stress (TS - Skin Temp as Veg Proxy)
+            ts = get_col('TS')
+            if ts:
+                ts_mean = calculate_mean(ts)
+                # High skin temp = High stress
+                # Normalize assuming 330K max, 270K min
+                veg_stress = (ts_mean - 270) / (330 - 270)
                 features['veg_stress'] = float(clip(veg_stress, 0, 1))
             else:
                 features['veg_stress'] = 0.5

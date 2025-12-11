@@ -36,15 +36,14 @@ To ensure the model works with our simulation, it **MUST** follow this signature
 **Input (Features):**
 The model should accept a tensor of shape `(Batch_Size, 90, 6)`:
 1.  **PRECTOT** (Precipitation)
-2.  **GWETTOP** (or proxy e.g. **QV2M**) -> Soil Moisture/Humidity
+2.  **QV2M** (Specific Humidity) -> **Proxy for Soil Moisture**
 3.  **T2M_MAX** (Max Temperature)
 4.  **T2M_MIN** (Min Temperature)
-5.  **NDVI** (Vegetation Index)
+5.  **TS** (Earth Skin Temperature) -> **Proxy for Veg Stress**
 6.  **PS** (Surface Pressure)
 
-6.  **PS** (Surface Pressure)
+*Note: We are using proxies because GWETTOP and NDVI are missing from the `train_timeseries.csv`. This is "Option A" (Simulation-Compatible).*
 
-*Note: You MUST stick to 6 time-series inputs (Option A). Do NOT add static soil data (Option B) as it breaks the simulation integration.*
 *Note: You can normalize these values (0-1) during preprocessing.*
 
 **Output:**
