@@ -35,11 +35,11 @@ To ensure the model works with our simulation, it **MUST** follow this signature
 
 **Input (Features):**
 The model should accept a tensor of shape `(Batch_Size, 90, 6)`:
-1.  **PRECTOT** (Precipitation)
-2.  **GWETTOP** (Soil Moisture)
+1.  **PRECTOT** (Precipitation) -> Drives SPI
+2.  **GWETTOP** (Soil Moisture) -> **CRITICAL**: Drives SMI (Soil Moisture Index)
 3.  **T2M_MAX** (Max Temperature)
 4.  **T2M_MIN** (Min Temperature)
-5.  **NDVI** (Vegetation Index - derived or raw)
+5.  **NDVI** (Vegetation Index)
 6.  **PS** (Surface Pressure)
 
 *Note: You can normalize these values (0-1) during preprocessing.*
