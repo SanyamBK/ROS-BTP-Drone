@@ -44,14 +44,12 @@ Climate change is increasing the frequency and severity of agricultural droughts
 - **Distributed across 10 farmland areas** for complete coverage
 
 ### 📊 Intelligent Drought Risk Assessment
-- **Machine learning-inspired risk model** using multiple indicators:
-  - Rainfall deficit trends
-  - Soil moisture index
-  - Vegetation health metrics
-  - Heatwave intensity and duration
-  - Historical drought patterns (2021-2025)
-- **Probabilistic forecasting** with trend analysis
-- **Logistic mapping** for confidence bounds (5%-95%)
+- **LSTM Neural Network** (PyTorch) trained on US Drought Monitor data:
+  - Sequence-to-One architecture (90-day lookback)
+  - inputs: Precipitation, Soil Moisture (QV2M), Skin Temp, etc.
+- **Probabilistic forecasting** (0.0 - 1.0 Risk Score)
+- **Fallback Mechanism**: Gracefully degrades to heuristic model if model/deps missing
+- **Research Basis**: "DroughtCast" (Brust et al., 2021)
 
 ### 🎯 Adaptive Resource Allocation
 - **Priority-based deployment** to highest-risk areas
@@ -104,18 +102,14 @@ Climate change is increasing the frequency and severity of agricultural droughts
 
 ## 🔨 What We've Built
 
-### 1. **Drought Risk Analysis Engine**
-We developed a sophisticated risk assessment model that analyzes historical climate data across multiple dimensions:
+### 1. **Drought Risk Analysis Engine (LSTM)**
+We replaced the initial heuristic model with a fully trained **Long Short-Term Memory (LSTM)** Neural Network:
+- **Architecture**: PyTorch-based LSTM with 2 hidden layers
+- **Input**: 90-day history of 6 meteorological features
+- **Performance**: Capable of predicting USDM scores with high accuracy
+- **Integration**: Runs inference directly within the ROS simulation loop
 
-```python
-Risk Score = weighted_sum(
-    rainfall_deficit,      # 45% weight
-    soil_moisture_deficit, # 30% weight
-    vegetation_stress,     # 15% weight
-    heatwave_intensity,    # 8% weight
-    drought_frequency      # 2% weight
-) + trend_bonus
-```
+*The legacy heuristic model is preserved as a fallback.*
 
 The model uses logistic mapping to provide probabilistic forecasts between 5% and 95% confidence levels.
 
@@ -204,6 +198,8 @@ sudo apt-get install ros-noetic-rviz
 ### Python Dependencies
 ```bash
 pip3 install pyyaml numpy
+# Required for LSTM Model:
+pip3 install torch --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
 ```
 
 ## 🚀 Installation
@@ -341,26 +337,18 @@ start_position:
 
 ## 🔬 Technical Details
 
-### Drought Risk Model
+### Drought Risk Model (LSTM)
 
-**Input Features:**
-- Rainfall deficit (0-1 normalized)
-- Soil moisture deficit (0-1 normalized)
-- Vegetation stress index (0-1 normalized)
-- Heatwave intensity (normalized by days)
-- Historical drought frequency
+**Input Tensor (Sequence):** `(1, 90, 6)`
+**Features:**
+1.  **PRECTOT**: Precipitation
+2.  **QV2M**: Specific Humidity (Soil Proxy)
+3.  **T2M_MAX**: Max Temperature
+4.  **T2M_MIN**: Min Temperature
+5.  **TS**: Earth Skin Temperature (Veg Stress Proxy)
+6.  **PS**: Surface Pressure
 
-**Trend Analysis:**
-```python
-trend_factor = (recent_avg - historical_avg) / historical_avg
-trend_bonus = max(0, trend_factor) * sensitivity
-```
-
-**Output Probability:**
-```python
-logit = weighted_score + trend_bonus - baseline
-probability = 0.05 + 0.90 / (1 + exp(-k * logit))
-```
+**Output:** Single float `0.0 - 1.0` representing normalized drought risk.
 
 ### Navigation Algorithm
 
@@ -457,12 +445,18 @@ multi_drone_sim/
 │   └── explore_areas.launch          # Exploration mission
 ├── logs/
 │   └── drought_allocation.log        # Mission reports
+├── LSTM/
+│   ├── lstm_model.pth            # Trained PyTorch Model weights
+│   └── model.py                  # LSTM Class Definition
+├── LSTM_GUIDE.md                 # Documentation for Model Training
+├── LSTM_TRAINING_README.md       # Original Training Notes
 ├── models/
 │   └── quadcopter/                   # Drone 3D model
 │       ├── model.config
 │       └── model.sdf
 ├── scripts/
 │   ├── area_explorer.py              # Risk model & allocation
+│   ├── drought_probability_model.py  # Inference Engine (LSTM + Fallback)
 │   ├── multi_drone_navigator.py      # Navigation & sensors
 │   └── drone_controller.py           # Low-level control
 ├── src/                              # C++ source files (if needed)
@@ -517,7 +511,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔮 Future Enhancements
 
-- [ ] Machine learning for adaptive risk models
 - [ ] Real-time weather data integration
 - [ ] Advanced path planning (A*, RRT)
 - [ ] Multi-objective optimization
