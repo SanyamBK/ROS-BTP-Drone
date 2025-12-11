@@ -22,7 +22,9 @@ from typing import Dict, List, Tuple
 HAS_TORCH = False
 try:
     import torch
-    from drought_lstm import DroughtLSTM
+    # User placed model in LSTM/model.py
+    sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'LSTM'))
+    from model import DroughtLSTM
     HAS_TORCH = True
 except ImportError:
     pass
@@ -90,8 +92,10 @@ class DroughtProbabilityModel:
         # LSTM Model
         self.lstm_model = None
         if HAS_TORCH:
-            model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                    'models', 'lstm_model.pth')
+            # Model is now in LSTM/lstm_model.pth at the repo root
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            model_path = os.path.join(repo_root, 'LSTM', 'lstm_model.pth')
+            
             if os.path.exists(model_path):
                 try:
                     self.lstm_model = DroughtLSTM()
