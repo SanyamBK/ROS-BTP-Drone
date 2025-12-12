@@ -767,7 +767,7 @@ def main():
             f"  {farm_name:<18} (Area {area_name}, {area_cfg.get('color', 'n/a'):>6}) | "
             f"P(drought)={profile['probability']*100:.1f}% | Drones={assigned}"
         )
-    rospy.loginfo(f"  Backup drones: {backup_count}")
+    rospy.loginfo(f"  Backup drones: {reserve_drones}")
     
     # Wait for simulation to stabilize
     rospy.loginfo("Waiting for simulation to start...")
