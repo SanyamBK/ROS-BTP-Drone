@@ -100,10 +100,22 @@ class SwarmLocalization:
             p.z = res.x[2]
             self.pos_pub.publish(p)
             
-            # VISIBILITY UPDATE: Log fix to console periodically
-            # We use throttle to avoid defining a new timer
+            # --- BELIEF SPACE METRIC (IROS 2024) ---
+            # Estimate Covariance Sigma = inverse(J.T * J) * MSE
+            # J = Jacobian at the solution
+            J = res.jac
+            mse = np.mean(res.fun**2)
+            try:
+                # covariance matrix approximation
+                cov = np.linalg.inv(J.T @ J) * mse
+                belief_uncertainty = np.trace(cov) # minimization objective J = tr(Sigma)
+            except np.linalg.LinAlgError:
+                belief_uncertainty = 999.0
+
+            # VISIBILITY UPDATE: Log fix and Belief Uncertainty
             rospy.loginfo_throttle(5.0, 
-                f"[SwarmLoc] Drone {self.drone_id} Fixed Pos: ({p.x:.1f}, {p.y:.1f}) | Error: {np.mean(np.abs(res.fun)):.2f}"
+                f"[SwarmLoc] Drone {self.drone_id} Pos: ({p.x:.1f}, {p.y:.1f}) | "
+                f"Belief Uncertainty (tr(Sum)): {belief_uncertainty:.4f}"
             )
             
             error = np.mean(np.abs(res.fun))
