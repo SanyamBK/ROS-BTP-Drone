@@ -529,10 +529,20 @@ class DroneExplorer:
             z_err = target_z - self.current_pose.position.z
             vz = max(-1.0, min(1.0, 1.5 * z_err))
             
-            cmd.linear.x = vx
-            cmd.linear.y = vy
+            # CRITICAL FIX: Transform Global Velocity to Body Frame
+            # cmd_vel expects linear.x = forward, linear.y = left
+            orientation_q = self.current_pose.orientation
+            orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+            (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+            
+            # Rotate vector by -yaw
+            vx_body = vx * cos(yaw) + vy * sin(yaw)
+            vy_body = -vx * sin(yaw) + vy * cos(yaw)
+
+            cmd.linear.x = vx_body
+            cmd.linear.y = vy_body
             cmd.linear.z = vz
-            cmd.angular.z = 0.0
+            cmd.angular.z = 0.0 # Maintain heading (or add hearing control if needed)
 
             self.cmd_vel_pub.publish(cmd)
 
