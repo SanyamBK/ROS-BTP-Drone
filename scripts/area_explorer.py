@@ -14,6 +14,7 @@ import sys
 # Ensure we can import local modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from drought_probability_model import DroughtProbabilityModel
+from area_allocation import Area, Drone, DroneRole, DynamicDroneAllocator
 
 
 def clamp(value, minimum=0.0, maximum=1.0):
@@ -77,48 +78,7 @@ def analyze_drought_risk(area_name, area_config):
     }
 
 
-def allocate_drones(area_profiles, num_drones, allocation_cfg):
-    """Allocate drones based on drought probability ranking."""
-    if not area_profiles:
-        return {}, 0
-
-    min_per_area = allocation_cfg.get('min_drones_per_area', 1)
-    max_per_area = max(min_per_area, allocation_cfg.get('max_drones_per_area', 3))
-    reserve_requested = allocation_cfg.get('reserve_drones', 0)
-
-    area_names = list(area_profiles.keys())
-    num_areas = len(area_names)
-
-    baseline_required = min_per_area * num_areas
-    if baseline_required >= num_drones:
-        min_per_area = max(0, num_drones // num_areas)
-        baseline_required = min_per_area * num_areas
-
-    reserve_drones = max(0, min(reserve_requested, max(0, num_drones - baseline_required)))
-
-    available_for_allocation = num_drones - reserve_drones
-    allocation = {area: min_per_area for area in area_names}
-
-    assigned = sum(allocation.values())
-    remaining = max(0, available_for_allocation - assigned)
-
-    sorted_areas = sorted(area_names, key=lambda name: area_profiles[name]['probability'], reverse=True)
-
-    round_robin_index = 0
-    guard = 0
-    while remaining > 0 and guard < 200:
-        target_area = sorted_areas[round_robin_index % num_areas]
-        if allocation[target_area] < max_per_area:
-            allocation[target_area] += 1
-            remaining -= 1
-        
-        round_robin_index += 1
-        guard += 1
-
-        if all(allocation[name] >= max_per_area for name in sorted_areas):
-            break
-
-    return allocation, reserve_drones
+# Local allocate_drones removed. Using AreaPrioritizer from area_allocation.py
 
 
 def build_allocation_report(log_path, areas_cfg, area_profiles, allocation, full_plan, mission_results=None):
@@ -715,40 +675,76 @@ def main():
     rospy.loginfo("[Main] Analyzing drought risk for all areas...")
     area_profiles = {name: analyze_drought_risk(name, cfg) for name, cfg in areas.items()}
     
-    rospy.loginfo("[Main] Allocating drones to areas...")
-    allocation_counts, reserve_drones = allocate_drones(area_profiles, num_drones, allocation_cfg)
+    rospy.loginfo("[Main] Allocating drones to areas (Advanced Logic)...")
     
-    rospy.loginfo("Drone Allocation Plan:")
-    # print_allocation_table(allocation, risk_ranking, area_profiles) # This function is not defined in the provided context
+    # Convert config to Area objects for the allocator
+    area_objects = []
+    for name, cfg in areas.items():
+        profile = area_profiles[name]
+        area_objects.append(Area(
+            area_id=name,
+            drought_probability=profile['probability'],
+            size_m2=cfg.get('size', 10.0)**2 * 3.14, # Approx area
+            coverage_radius=cfg.get('size', 10.0)/2,
+            x_center=cfg.get('x', 0),
+            y_center=cfg.get('y', 0),
+            crop_type=cfg.get('crop', 'unknown')
+        ))
+        
+    # Create Drone objects
+    drone_objects = [Drone(drone_id=i) for i in range(num_drones)]
     
+    # Initialize Allocator
+    allocator = DynamicDroneAllocator(
+        total_drones=num_drones,
+        total_areas=len(areas),
+        min_drones_per_area=allocation_cfg.get('min_drones_per_area', 1),
+        max_drones_per_area=allocation_cfg.get('max_drones_per_area', 3),
+        reserve_percentage=0.1 # Default 10% reserve for auditors
+    )
+    
+    # Execute Allocation
+    result = allocator.allocate_drones(area_objects, drone_objects)
+    
+    allocation_counts = {aid: len(dids) for aid, dids in result.allocations.items()}
+    reserve_drones = len(result.reserve_drones)
+    
+    # Print Summary Table
+    rospy.loginfo("\n" + "="*60)
+    rospy.loginfo("ALLOCATION SUMMARY (PHASE 2-4 LOGIC)")
+    rospy.loginfo("="*60)
+    summary = result.allocation_summary
+    for entry in summary['allocation_table']:
+        risk_label = "HIGH" if entry['probability'] > 0.7 else "MED" if entry['probability'] > 0.4 else "LOW"
+        rospy.loginfo(f"Area {entry['area_id']:<6} | Risk {entry['probability']:.2f} ({risk_label}) | Drones: {entry['drones_assigned']} {entry['drone_ids']}")
+    rospy.loginfo(f"Total Allocated: {summary['total_allocated']} | Reserves: {summary['total_reserves']}")
+    rospy.loginfo("="*60 + "\n")
+
     rospy.loginfo("[Main] Initializing drone explorers...")
     
-    explorer_plan = []
-    for area_name, count in allocation_counts.items():
-        profile = area_profiles[area_name]
-        for idx in range(count):
-            explorer_plan.append({
+    # Map back to explorer_plan format
+    full_plan = [None] * num_drones
+    
+    # 1. Explorers
+    for area_id, drone_ids in result.allocations.items():
+        profile = area_profiles[area_id]
+        for idx, did in enumerate(drone_ids):
+            full_plan[did] = {
                 'role': 'explorer',
-                'area': area_name,
+                'area': area_id,
                 'group_index': idx,
-                'group_size': count,
+                'group_size': len(drone_ids),
                 'probability': profile['probability']
-            })
-
-    explorer_plan.sort(key=lambda item: item['probability'], reverse=True)
-
-    backup_count = reserve_drones
-    while len(explorer_plan) + backup_count < num_drones:
-        backup_count += 1
-    while len(explorer_plan) + backup_count > num_drones and backup_count > 0:
-        backup_count -= 1
-    if len(explorer_plan) + backup_count > num_drones:
-        explorer_plan = explorer_plan[:num_drones - backup_count]
-
-    full_plan = explorer_plan + [{'role': 'backup'} for _ in range(backup_count)]
-    if len(full_plan) < num_drones:
-        full_plan.extend([{'role': 'backup'} for _ in range(num_drones - len(full_plan))])
-    full_plan = full_plan[:num_drones]
+            }
+            
+    # 2. Reserves
+    for did in result.reserve_drones:
+        full_plan[did] = {'role': 'backup'}
+        
+    # Safety fallback
+    for i in range(num_drones):
+        if full_plan[i] is None:
+            full_plan[i] = {'role': 'backup'}
     
     rospy.loginfo("=" * 60)
     rospy.loginfo("         MULTI-DRONE FARMLAND EXPLORATION")

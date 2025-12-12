@@ -58,6 +58,8 @@ The system's architecture is built upon the following key research papers:
 2.  **Swarm Ranging**: *Ultra-Wideband Swarm Ranging* (Shan et al., INFOCOM 2021).
 3.  **Energy Planning**: *Coverage Planning with a Mobile Recharging UGV* (Karapetyan et al., ICRA 2024).
 
+> **Note**: The system now explicitly calculates and logs the **Belief Uncertainty** ($\text{tr}(\Sigma)$) as per the IROS 2024 paper to quantify swarm localization confidence.
+
 ## 🛠️ Tech Stack
 - **Fallback Mechanism**: Gracefully degrades to heuristic model if model/deps missing
 - **Research Basis**: "DroughtCast" (Brust et al., 2021)
