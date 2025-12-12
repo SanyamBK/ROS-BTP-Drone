@@ -100,6 +100,12 @@ class SwarmLocalization:
             p.z = res.x[2]
             self.pos_pub.publish(p)
             
+            # VISIBILITY UPDATE: Log fix to console periodically
+            # We use throttle to avoid defining a new timer
+            rospy.loginfo_throttle(5.0, 
+                f"[SwarmLoc] Drone {self.drone_id} Fixed Pos: ({p.x:.1f}, {p.y:.1f}) | Error: {np.mean(np.abs(res.fun)):.2f}"
+            )
+            
             error = np.mean(np.abs(res.fun))
             if error < 0.5:
                 pass # Good fix

@@ -65,6 +65,11 @@ class EnergyAwarePlanner:
             if critical_drones and not self.ugv_busy:
                 target_id = critical_drones[0] # Greedy: Service first found
                 self.coordinate_rendezvous(target_id)
+
+            # VISIBILITY UPDATE: Periodic heartbeat
+            if rospy.get_time() % 10.0 < 0.2: 
+                avg_bat = sum(d['bat'] for d in self.drone_states.values()) / max(1, len(self.drone_states))
+                rospy.loginfo(f"[EnergyMaster] Monitoring Fleet | Avg Battery: {avg_bat:.1f}% | Active Implementation: ICRA-2024")
             
             self.rate.sleep()
 
