@@ -50,7 +50,7 @@ Climate change is increasing the frequency and severity of agricultural droughts
 - **Probabilistic forecasting** (0.0 - 1.0 Risk Score)
 - **Fault Tolerance**: Automatic detection of sensor failures using statistical deviation from model predictions.
 - **Swarm Ranging (Active)**: Decentralized UWB-based localization from *INFOCOM 2021* fully integrated.
-- **Energy-Aware Planning (Active)**: Cooperative recharging with mobile UGV station from *ICRA 2024*. Drones now simulate battery drain and trigger UGV rescue missions.
+- **Energy-Aware Planning (Active)**: Cooperative recharging with mobile UGV station from *ICRA 2024*. UGV actively intercepts low-battery drones. Drones simulate realistic 800mAh battery drain with random start charges.
 
 ## 📚 Research Foundation
 The system's architecture is built upon the following key research papers:
@@ -139,6 +139,13 @@ Areas 1-10: 1 drone each (10 drones)
 Areas 1-10: Round-robin distribution of 8 remaining drones
 Result: 1-3 drones per area depending on risk assessment
 ```
+
+### 3. **Active UGV Charging System**
+We implemented an autonomous Mobile Charging Station (UGV) that:
+- **Patrols** the farm perimeter when idle.
+- **Intercepts** drones with critical battery levels (<30%).
+- **Recharges** drones via a command-based handshake (`/charge_cmd`) to prevent infinite looping.
+- **Visual Feedback**: The UGV is fully visualized in Gazebo, distinct from the drones.
 
 ### 3. **Realistic Farmland Layout**
 Farmland areas are now:
@@ -280,7 +287,10 @@ The Gazebo window shows:
 - 18 quadcopter drones (spawn position at y=-20)
 - 10 scattered circular farmland areas
 - Real-time drone movements and area coverage
+
 - Overlapping regions for collaborative monitoring
+- **Mobile UGV Charger**: A ground vehicle patrolling and servicing drones.
+
 
 #### View in RViz (Optional)
 ```bash
@@ -350,6 +360,11 @@ start_position:
   x: 0.0
   y: -20.0                  # Spawn position (away from farmlands)
   z: 2.0
+
+battery:
+  capacity: 800             # mAh (Reduced for simulation speed)
+  start_charge_min: 40      # %
+  start_charge_max: 90      # %
 ```
 
 ## 🔬 Technical Details

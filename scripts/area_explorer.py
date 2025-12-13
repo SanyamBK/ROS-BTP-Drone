@@ -198,6 +198,10 @@ class Battery:
     def get_percentage(self):
         return max(0.0, (self.current_charge / self.capacity_mah) * 100.0)
 
+    def recharge(self, percentage_target):
+        """Recharge to a specific percentage (e.g., 100.0)"""
+        self.current_charge = (percentage_target / 100.0) * self.capacity_mah
+
 
 class DroneExplorer:
     """Explorer drone that patrols a specific area"""
@@ -238,6 +242,7 @@ class DroneExplorer:
         self.cmd_vel_pub = rospy.Publisher(f'/drone_{drone_id}/cmd_vel', Twist, queue_size=10)
         self.battery_pub = rospy.Publisher(f'/drone_{drone_id}/battery', Float32, queue_size=10)
         self.odom_sub = rospy.Subscriber(f'/drone_{drone_id}/odom', Odometry, self.odom_callback)
+        self.charge_sub = rospy.Subscriber(f'/drone_{drone_id}/charge_cmd', Float32, self.charge_callback)
 
         # Generate waypoints for area exploration
         self.generate_exploration_waypoints()
@@ -257,6 +262,11 @@ class DroneExplorer:
         )
         self.notes.append(f"Onboard risk error {self.risk_error_pct:+.2f}% against model")
     
+    def charge_callback(self, msg):
+        """Handle charge commands from UGV/Planner"""
+        rospy.loginfo(f"[Drone {self.drone_id}] Receiving Charge: {msg.data}%")
+        self.battery.recharge(msg.data)
+
     def odom_callback(self, msg):
         """Update current position from odometry"""
         self.current_pose = msg.pose.pose
