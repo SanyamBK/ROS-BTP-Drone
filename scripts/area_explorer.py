@@ -8,7 +8,6 @@ import random
 from datetime import datetime
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Float32, String
 from math import sqrt, atan2, exp, pi, cos, sin
 from tf.transformations import euler_from_quaternion
 import sys
@@ -205,7 +204,7 @@ class DroneExplorer:
 
     def __init__(self, drone_id, area_name, area_config, exploration_config, start_pos,
                  result_aggregator, measurement_noise=0.1, boundary_soft_margin=0.3,
-                 group_index=0, group_size=1, drought_probability=None, shared_positions=None):
+                 group_index=0, group_size=1, drought_probability=None):
         self.drone_id = drone_id
         self.area_name = area_name
         self.area_config = area_config
@@ -221,8 +220,6 @@ class DroneExplorer:
         self.measurement_noise = abs(measurement_noise)
         self.boundary_soft_margin = max(0.05, boundary_soft_margin)
         self.farm_name = area_config.get('name', area_name)
-        self.shared_positions = shared_positions if shared_positions is not None else {}
-        self.nearby_uavs = [] # List of (id, dist) from UWB
 
         self.actual_probability = drought_probability if drought_probability is not None else 0.0
         self.measured_probability = clamp(
@@ -240,45 +237,25 @@ class DroneExplorer:
         # Publishers and Subscribers
         self.cmd_vel_pub = rospy.Publisher(f'/drone_{drone_id}/cmd_vel', Twist, queue_size=10)
         self.battery_pub = rospy.Publisher(f'/drone_{drone_id}/battery', Float32, queue_size=10)
+        self.battery_pub = rospy.Publisher(f'/drone_{drone_id}/battery', Float32, queue_size=10)
         self.odom_sub = rospy.Subscriber(f'/drone_{drone_id}/odom', Odometry, self.odom_callback)
         self.charge_sub = rospy.Subscriber(f'/drone_{drone_id}/charge_cmd', Float32, self.charge_callback)
-        self.uwb_sub = rospy.Subscriber('/swarm/uwb_ranges', String, self.uwb_callback)
-
-        # Generate waypoints for area exploration
-        self.generate_exploration_waypoints()
 
     def charge_callback(self, msg):
         """Handle charging command from UGV/Planner"""
         requested_charge = msg.data
+        # If we receive 100.0, refill to capacity
         if requested_charge >= 100.0:
             self.battery.current_charge = self.battery.capacity_mah
         else:
+             # Add specific amount or percentage logic if needed
+             # For now, planner sends 100.0 for full charge
              self.battery.current_charge = self.battery.capacity_mah
+        
         rospy.loginfo(f"[Drone {self.drone_id}] RECHARGED! Battery at 100%")
 
-    def uwb_callback(self, msg):
-        """Process UWB ranges for collision avoidance"""
-        try:
-            import json
-            data = json.loads(msg.data)
-            self.nearby_uavs = []
-            for d in data:
-                other_id = None
-                dist = d['dist']
-                if d['a'] == self.drone_id:
-                    other_id = d['b']
-                elif d['b'] == self.drone_id:
-                    other_id = d['a']
-                
-                if other_id is not None and dist < 10.0:
-                    self.nearby_uavs.append((other_id, dist))
-        except ValueError:
-            pass
-
-    def odom_callback(self, msg):
-        """Update current position from odometry"""
-        self.current_pose = msg.pose.pose
-        self.shared_positions[self.drone_id] = self.current_pose.position
+        # Generate waypoints for area exploration
+        self.generate_exploration_waypoints()
 
         risk_pct = self.actual_probability * 100.0
         roster_note = (
@@ -635,34 +612,6 @@ class DroneExplorer:
             orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
             (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
             
-            # ------------------------------------------------------------------
-            # SWARM COLLISION AVOIDANCE (Potential Field)
-            # ------------------------------------------------------------------
-            curr_pos = self.current_pose.position
-            ax, ay = 0.0, 0.0
-            SAFE_RADIUS = 2.5 # meters
-            REPULSION_GAIN = 2.0
-            
-            for other_id, dist in self.nearby_uavs:
-                if dist < SAFE_RADIUS and other_id in self.shared_positions:
-                    other_pos = self.shared_positions[other_id]
-                    # Vector away from neighbor
-                    raw_dx = curr_pos.x - other_pos.x
-                    raw_dy = curr_pos.y - other_pos.y
-                    # Normalize
-                    mag = sqrt(raw_dx*raw_dx + raw_dy*raw_dy)
-                    if mag > 0.1:
-                        # Repulsion scales with invite square of distance
-                        strength = REPULSION_GAIN * (1.0/max(0.1, dist) - 1.0/SAFE_RADIUS) / (dist*dist)
-                        strength = min(strength, 2.0) # Cap repulsion
-                        
-                        ax += (raw_dx / mag) * strength
-                        ay += (raw_dy / mag) * strength
-            
-            # Add Repulsion to Navigation Velocity
-            vx += ax
-            vy += ay
-
             # Rotate vector by -yaw
             vx_body = vx * cos(yaw) + vy * sin(yaw)
             vy_body = -vx * sin(yaw) + vy * cos(yaw)
@@ -696,13 +645,12 @@ class DroneExplorer:
 
 class BackupDrone:
     """Backup drone that stays at starting position"""
-    def __init__(self, drone_id, start_pos, result_aggregator=None, measurement_noise=0.05, shared_positions=None):
+    def __init__(self, drone_id, start_pos, result_aggregator=None, measurement_noise=0.05):
         self.drone_id = drone_id
         self.start_pos = start_pos
         self.current_pose = None
         self.result_aggregator = result_aggregator
         self.measurement_noise = abs(measurement_noise)
-        self.shared_positions = shared_positions if shared_positions is not None else {}
 
         self.actual_probability = 0.0
         self.measured_probability = clamp(
@@ -730,7 +678,6 @@ class BackupDrone:
     def odom_callback(self, msg):
         """Update current position from odometry"""
         self.current_pose = msg.pose.pose
-        self.shared_positions[self.drone_id] = self.current_pose.position
     
     def hold_position(self):
         """Maintain position at starting location"""
@@ -930,9 +877,6 @@ def main():
     explorers = []
     backups = []
     
-    # Shared Registry for V2V Position Sharing (for collision avoidance vector calculation)
-    shared_positions = {}
-    
     for drone_id in range(num_drones):
         plan = full_plan[drone_id]
         if plan['role'] == 'explorer':
@@ -955,8 +899,7 @@ def main():
                 boundary_soft_margin=boundary_soft_margin,
                 group_index=plan['group_index'],
                 group_size=plan['group_size'],
-                drought_probability=plan.get('probability'),
-                shared_positions=shared_positions
+                drought_probability=plan.get('probability')
             )
             explorers.append(explorer)
         else:
@@ -965,8 +908,7 @@ def main():
                 drone_id,
                 start_pos,
                 result_aggregator=aggregator,
-                measurement_noise=idle_measurement_noise,
-                shared_positions=shared_positions
+                measurement_noise=idle_measurement_noise
             )
             backups.append(backup)
     
