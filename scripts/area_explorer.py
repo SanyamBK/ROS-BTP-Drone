@@ -237,22 +237,7 @@ class DroneExplorer:
         # Publishers and Subscribers
         self.cmd_vel_pub = rospy.Publisher(f'/drone_{drone_id}/cmd_vel', Twist, queue_size=10)
         self.battery_pub = rospy.Publisher(f'/drone_{drone_id}/battery', Float32, queue_size=10)
-        self.battery_pub = rospy.Publisher(f'/drone_{drone_id}/battery', Float32, queue_size=10)
         self.odom_sub = rospy.Subscriber(f'/drone_{drone_id}/odom', Odometry, self.odom_callback)
-        self.charge_sub = rospy.Subscriber(f'/drone_{drone_id}/charge_cmd', Float32, self.charge_callback)
-
-    def charge_callback(self, msg):
-        """Handle charging command from UGV/Planner"""
-        requested_charge = msg.data
-        # If we receive 100.0, refill to capacity
-        if requested_charge >= 100.0:
-            self.battery.current_charge = self.battery.capacity_mah
-        else:
-             # Add specific amount or percentage logic if needed
-             # For now, planner sends 100.0 for full charge
-             self.battery.current_charge = self.battery.capacity_mah
-        
-        rospy.loginfo(f"[Drone {self.drone_id}] RECHARGED! Battery at 100%")
 
         # Generate waypoints for area exploration
         self.generate_exploration_waypoints()
