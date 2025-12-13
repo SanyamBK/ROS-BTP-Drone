@@ -1,0 +1,256 @@
+<?xml version="1.0"?>
+<robot name="mobile_charger">
+
+  <!-- ================= BASE ================= -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="1.0 0.6 0.35"/>
+      </geometry>
+      <material name="grey">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="1.0 0.6 0.35"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="30.0"/>
+      <inertia ixx="2.0" iyy="2.5" izz="3.0" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- ================= WHEEL MACRO ================= -->
+  <!-- We define links manually for clarity -->
+
+  <!-- FRONT LEFT -->
+  <link name="front_left_wheel">
+    <visual>
+      <origin rpy="1.5707 0 0"/>
+      <geometry>
+        <cylinder radius="0.15" length="0.1"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <!-- SPOKE FOR ROTATION VISUALIZATION -->
+    <visual>
+      <origin rpy="0 0 0"/> 
+      <geometry>
+        <box size="0.25 0.02 0.11"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="1.5707 0 0"/>
+      <geometry>
+        <cylinder radius="0.15" length="0.1"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="2.0"/>
+      <inertia ixx="0.02" iyy="0.02" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- FRONT RIGHT -->
+  <link name="front_right_wheel">
+    <visual>
+      <origin rpy="1.5707 0 0"/>
+      <geometry>
+        <cylinder radius="0.15" length="0.1"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual>
+       <origin rpy="0 0 0"/> 
+       <geometry>
+         <box size="0.25 0.02 0.11"/>
+       </geometry>
+       <material name="white">
+         <color rgba="1 1 1 1"/>
+       </material>
+    </visual>
+    <collision>
+      <origin rpy="1.5707 0 0"/>
+      <geometry>
+        <cylinder radius="0.15" length="0.1"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="2.0"/>
+      <inertia ixx="0.02" iyy="0.02" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- REAR LEFT (Passive) -->
+  <link name="rear_left_wheel">
+    <visual>
+      <origin rpy="1.5707 0 0"/>
+      <geometry>
+        <cylinder radius="0.15" length="0.1"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <visual>
+       <origin rpy="0 0 0"/> 
+       <geometry>
+         <box size="0.25 0.02 0.11"/>
+       </geometry>
+       <material name="white"/>
+    </visual>
+    <collision>
+      <origin rpy="1.5707 0 0"/>
+      <geometry>
+        <cylinder radius="0.15" length="0.1"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="2.0"/>
+      <inertia ixx="0.02" iyy="0.02" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- REAR RIGHT (Passive) -->
+  <link name="rear_right_wheel">
+    <visual>
+      <origin rpy="1.5707 0 0"/>
+      <geometry>
+        <cylinder radius="0.15" length="0.1"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+     <visual>
+       <origin rpy="0 0 0"/> 
+       <geometry>
+         <box size="0.25 0.02 0.11"/>
+       </geometry>
+       <material name="white"/>
+    </visual>
+    <collision>
+      <origin rpy="1.5707 0 0"/>
+      <geometry>
+        <cylinder radius="0.15" length="0.1"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="2.0"/>
+      <inertia ixx="0.02" iyy="0.02" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- ================= JOINTS ================= -->
+  <!-- FRONT DRIVEN -->
+  <joint name="front_left_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_left_wheel"/>
+    <origin xyz="0.25 0.36 -0.175" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <joint name="front_right_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_right_wheel"/>
+    <origin xyz="0.25 -0.36 -0.175" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- REAR PASSIVE -->
+  <joint name="rear_left_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="rear_left_wheel"/>
+    <origin xyz="-0.25 0.36 -0.175" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <joint name="rear_right_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="rear_right_wheel"/>
+    <origin xyz="-0.25 -0.36 -0.175" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- ================= CHARGING PAD ================= -->
+  <link name="charging_pad">
+    <visual>
+      <geometry>
+        <cylinder radius="0.25" length="0.02"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="pad_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="charging_pad"/>
+    <origin xyz="0 0 0.185"/>
+  </joint>
+
+  <!-- ================= GAZEBO PLUGIN ================= -->
+  <gazebo>
+    <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <!-- Drive Front Wheels -->
+      <leftJoint>front_left_joint</leftJoint>
+      <rightJoint>front_right_joint</rightJoint>
+
+      <wheelSeparation>0.72</wheelSeparation>
+      <wheelDiameter>0.3</wheelDiameter>
+      <wheelAcceleration>1.0</wheelAcceleration>
+      <wheelTorque>20</wheelTorque>
+
+      <robotBaseFrame>base_link</robotBaseFrame>
+      <commandTopic>cmd_vel</commandTopic>
+      <odometryTopic>odom</odometryTopic>
+      <odometryFrame>odom</odometryFrame>
+      <odometrySource>1</odometrySource>
+
+      <publishTf>true</publishTf>
+      <publishOdomTF>true</publishOdomTF>
+      <publishWheelTF>true</publishWheelTF>
+      <publishWheelJointState>true</publishWheelJointState>
+      
+      <rosDebugLevel>na</rosDebugLevel>
+      <updateRate>30</updateRate>
+    </plugin>
+  </gazebo>
+
+  <!-- ================= GAZEBO MATERIALS ================= -->
+  <gazebo reference="base_link">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+  
+  <gazebo reference="charging_pad">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+
+  <gazebo reference="front_left_wheel">
+    <material>Gazebo/Black</material>
+    <mu1>0.8</mu1> <mu2>0.8</mu2>
+  </gazebo>
+  <gazebo reference="front_right_wheel">
+    <material>Gazebo/Black</material>
+    <mu1>0.8</mu1> <mu2>0.8</mu2>
+  </gazebo>
+  <gazebo reference="rear_left_wheel">
+    <material>Gazebo/Black</material>
+    <mu1>0.0</mu1> <mu2>0.0</mu2> <!-- Slippery rear wheels to prevent diff drive binding -->
+  </gazebo>
+  <gazebo reference="rear_right_wheel">
+    <material>Gazebo/Black</material>
+    <mu1>0.0</mu1> <mu2>0.0</mu2>
+  </gazebo>
+
+</robot>
