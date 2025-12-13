@@ -3,3 +3,5 @@ expected_work.md
 .venv/
 us-drought-meteorological-data/
 research_papers/
+scripts/__pycache__/
+LSTM/__pycache__/
