@@ -32,6 +32,7 @@ class MobileRechargingUGV:
         # Pubs/Subs
         self.odom_pub = rospy.Publisher('/ugv/odom', Odometry, queue_size=10)
         self.cmd_sub = rospy.Subscriber('/ugv/cmd_vel', Twist, self.cmd_callback)
+        self.charge_pub = rospy.Publisher('/ugv/charging_active', Bool, queue_size=10)
         
         # We need to know where drones are to charge them
         # In a real sim we'd use a service or collision detection.
@@ -87,8 +88,17 @@ class MobileRechargingUGV:
             if dist < self.charging_radius:
                 # Drone is docking!
                 # In a real impl, we'd send a 'charge' service request.
-                pass 
-                # rospy.loginfo_throttle(5, f"Charging Drone {drone_id}...")
+                # Drone is docking!
+                rospy.loginfo_throttle(5, f"[UGV] Docking success! Drone {drone_id} is recharging...")
+                
+                # Signal the energy planner (or any battery monitor) that charging is active
+                # We publish to a status topic that the planner can verify
+                self.charge_pub.publish(True)
+                
+                # In a full simulation, we would call a service here:
+                # rospy.wait_for_service(f'/drone_{drone_id}/recharge')
+                # recharge_srv = rospy.ServiceProxy(..., Setbool)
+                # recharge_srv(True)
 
     def run(self):
         while not rospy.is_shutdown():

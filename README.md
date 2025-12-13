@@ -49,8 +49,8 @@ Climate change is increasing the frequency and severity of agricultural droughts
   - inputs: Precipitation, Soil Moisture (QV2M), Skin Temp, etc.
 - **Probabilistic forecasting** (0.0 - 1.0 Risk Score)
 - **Fault Tolerance**: Automatic detection of sensor failures using statistical deviation from model predictions.
-- **Swarm Ranging (New)**: Decentralized UWB-based localization from *INFOCOM 2021*.
-- **Energy-Aware Planning (New)**: Cooperative recharging with mobile UGV station from *ICRA 2024*.
+- **Swarm Ranging (Active)**: Decentralized UWB-based localization from *INFOCOM 2021* fully integrated.
+- **Energy-Aware Planning (Active)**: Cooperative recharging with mobile UGV station from *ICRA 2024*. Drones now simulate battery drain and trigger UGV rescue missions.
 
 ## 📚 Research Foundation
 The system's architecture is built upon the following key research papers:

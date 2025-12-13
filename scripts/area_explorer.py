@@ -158,6 +158,47 @@ def build_allocation_report(log_path, areas_cfg, area_profiles, allocation, full
     with open(log_path, 'w') as log_file:
         log_file.write('\n'.join(lines))
 
+from std_msgs.msg import Float32
+
+class Battery:
+    """
+    Simulates LiPo battery discharge.
+    Model based on: Karapetyan et al., ICRA 2024 (simplified)
+    """
+    def __init__(self, capacity_mah=4500, start_voltage=12.6):
+        self.capacity_mah = capacity_mah
+        self.current_charge = capacity_mah
+        self.voltage = start_voltage
+        
+        # Power consumption params (Amps)
+        self.idle_current = 0.5  # Avionics only
+        self.hover_current = 15.0 # Motors hovering
+        self.flight_current_slope = 5.0 # Amps per m/s velocity
+        
+    def consume(self, velocity, dt):
+        """
+        Update charge based on flight state.
+        velocity: current speed in m/s
+        dt: time step in seconds
+        """
+        if self.current_charge <= 0:
+            return 0.0
+            
+        # Current draw model: I = I_hover + k * v
+        draw = self.hover_current + (self.flight_current_slope * velocity)
+        if velocity < 0.1: # Near stationary/hover
+            draw = self.hover_current
+            
+        # discharge (Ah) = draw (A) * dt (h)
+        drain_mah = draw * (dt / 3600.0) * 1000.0
+        self.current_charge -= drain_mah
+        
+        return self.get_percentage()
+        
+    def get_percentage(self):
+        return max(0.0, (self.current_charge / self.capacity_mah) * 100.0)
+
+
 class DroneExplorer:
     """Explorer drone that patrols a specific area"""
 
@@ -188,9 +229,14 @@ class DroneExplorer:
         self.boundary_events = 0
         self.notes = []
         self.result_recorded = False
-
-        # Publishers and subscribers
+        
+        # Battery Simulation
+        self.battery = Battery(capacity_mah=4500)
+        self.last_battery_time = rospy.Time.now()
+        
+        # Publishers and Subscribers
         self.cmd_vel_pub = rospy.Publisher(f'/drone_{drone_id}/cmd_vel', Twist, queue_size=10)
+        self.battery_pub = rospy.Publisher(f'/drone_{drone_id}/battery', Float32, queue_size=10)
         self.odom_sub = rospy.Subscriber(f'/drone_{drone_id}/odom', Odometry, self.odom_callback)
 
         # Generate waypoints for area exploration
@@ -395,6 +441,22 @@ class DroneExplorer:
                     break
                 continue
             
+            # Update Battery (Simulated)
+            current_time = rospy.Time.now()
+            dt = (current_time - self.last_battery_time).to_sec()
+            self.last_battery_time = current_time
+            
+            # Simple speed estimate from command or physics
+            speed = sqrt(self.current_pose.position.x**2 + self.current_pose.position.y**2) * 0.1 # simplified stat
+            # Better: use cmd_vel or odom delta. For now, assume moving.
+            speed = 2.0 if self.current_waypoint_idx < len(self.waypoints) else 0.0
+            
+            bat_pct = self.battery.consume(speed, dt)
+            self.battery_pub.publish(bat_pct)
+            
+            if bat_pct < 20.0:
+                 rospy.logwarn_throttle(10, f"Drone {self.drone_id} Low Battery: {bat_pct:.1f}%")
+
             # Check if drone has left its area (safety check)
             if self.current_waypoint_idx > 0 and not self.is_within_area_bounds():
                 self.boundary_events += 1
