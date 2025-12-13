@@ -1,5 +1,5 @@
 MULTI-DRONE FARMLAND DROUGHT ALLOCATION REPORT
-Generated (UTC): 2025-12-13 09:11:15
+Generated (UTC): 2025-12-13 13:34:48
 
 Drought probability model:
   * Weighted rainfall deficit, soil moisture deficit, vegetation stress, and heatwave intensity
@@ -41,25 +41,3 @@ Drone  Role       Assignment (segment)              Risk   Notes
 15     explorer  area_6  Farmland 6           2/2          48.8%  Farmland 6 (cyan)
 16     explorer  area_7  Farmland 7           2/2          48.8%  Farmland 7 (magenta)
 17     backup    staging-area                 n/a       ---    Holding position
-
-Mission risk observations:
-Drone  Farm Name           Actual  Onboard  Error   Bounds  Final (x,y)     Status   Notes
------  ------------------  -------  -------  -------  ------  --------------  -------  ---------------------------
-0      Farmland 1            48.8%    53.1%   +4.30%  0       (-11.8, 9.0)    complete  Onboard risk error +4.30% against model; Returned to center
-1      Farmland 2            48.8%    50.8%   +2.04%  0       (-1.9, 11.7)    complete  Onboard risk error +2.04% against model; Returned to center
-2      Farmland 3            48.8%    47.2%   -1.62%  0       (11.2, 7.6)     complete  Onboard risk error -1.62% against model; Returned to center
-3      Farmland 4            48.8%    50.9%   +2.14%  0       (-10.8, 1.5)    complete  Onboard risk error +2.14% against model; Returned to center
-4      Farmland 5            48.8%    43.7%   -5.08%  0       (1.1, -0.9)     complete  Onboard risk error -5.08% against model; Returned to center
-5      Farmland 6            48.8%    43.7%   -5.09%  0       (9.2, -2.0)     complete  Onboard risk error -5.09% against model; Returned to center
-6      Farmland 7            48.8%    51.6%   +2.81%  0       (-7.8, -9.5)    complete  Onboard risk error +2.81% against model; Returned to center
-7      Farmland 8            48.8%    41.5%   -7.23%  0       (0.6, -11.9)    complete  Onboard risk error -7.23% against model; Returned to center
-8      Farmland 9            48.8%    48.8%   +0.02%  0       (8.6, -11.1)    complete  Onboard risk error +0.02% against model; Returned to center
-9      Farmland 10           48.8%    50.9%   +2.11%  0       (3.6, 3.9)      complete  Onboard risk error +2.11% against model; Returned to center
-10     Farmland 1            48.8%    56.0%   +7.24%  0       (-11.9, 8.9)    complete  Onboard risk error +7.24% against model; Returned to center
-11     Farmland 2            48.8%    55.2%   +6.44%  0       (-1.8, 11.6)    complete  Onboard risk error +6.44% against model; Returned to center
-12     Farmland 3            48.8%    41.9%   -6.84%  0       (11.1, 7.3)     complete  Onboard risk error -6.84% against model; Returned to center
-13     Farmland 4            48.8%    41.9%   -6.83%  0       (-10.9, 1.4)    complete  Onboard risk error -6.83% against model; Returned to center
-14     Farmland 5            48.8%    41.7%   -7.08%  0       (1.2, -0.9)     complete  Onboard risk error -7.08% against model; Returned to center
-15     Farmland 6            48.8%    44.8%   -4.00%  0       (9.1, -2.2)     complete  Onboard risk error -4.00% against model; Returned to center
-16     Farmland 7            48.8%    42.7%   -6.06%  0       (-7.9, -9.6)    complete  Onboard risk error -6.06% against model; Returned to center
-17     Staging Pad            0.0%     0.0%   +0.00%  0       (0.3, -21.0)    reserve  Idle drought reserve drone

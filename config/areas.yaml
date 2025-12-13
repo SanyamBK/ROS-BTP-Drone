@@ -4,7 +4,7 @@ areas:
     crop: Wheat
     x: -12.0
     y: 9.0
-    z: 2.0
+    z: 3.0
     color: red
     size: 10.0
     drought_history:
@@ -43,7 +43,7 @@ areas:
     crop: Soybean
     x: -2.0
     y: 11.5
-    z: 2.0
+    z: 3.2
     color: blue
     size: 12.0
     drought_history:
@@ -82,7 +82,7 @@ areas:
     crop: Maize
     x: 11.0
     y: 7.5
-    z: 2.0
+    z: 3.1
     color: yellow
     size: 10.0
     drought_history:
@@ -121,7 +121,7 @@ areas:
     crop: Barley
     x: -11.0
     y: 1.5
-    z: 2.0
+    z: 3.5
     color: purple
     size: 10.0
     drought_history:
@@ -160,7 +160,7 @@ areas:
     crop: Vegetables
     x: 1.0
     y: -1.0
-    z: 2.0
+    z: 3.5
     color: orange
     size: 12.0
     drought_history:
@@ -199,7 +199,7 @@ areas:
     crop: Sunflower
     x: 9.0
     y: -2.0
-    z: 2.0
+    z: 3.5
     color: cyan
     size: 10.0
     drought_history:
@@ -238,7 +238,7 @@ areas:
     crop: Rice
     x: -8.0
     y: -9.5
-    z: 2.0
+    z: 3.5
     color: magenta
     size: 10.0
     drought_history:
@@ -277,7 +277,7 @@ areas:
     crop: Cotton
     x: 0.5
     y: -12.0
-    z: 2.0
+    z: 3.5
     color: lime
     size: 12.0
     drought_history:
@@ -316,7 +316,7 @@ areas:
     crop: Peanuts
     x: 8.5
     y: -11.0
-    z: 2.0
+    z: 3.5
     color: olive
     size: 10.0
     drought_history:
@@ -355,7 +355,7 @@ areas:
     crop: Pulses
     x: 3.5
     y: 4.0
-    z: 2.0
+    z: 3.5
     color: navy
     size: 10.0
     drought_history:
@@ -392,7 +392,7 @@ areas:
 start_position:
   x: 0.0
   y: -20.0
-  z: 2.0
+  z: 3.5
 num_drones: 18
 exploration:
   patrol_pattern: grid

@@ -205,7 +205,10 @@ sudo apt-get install ros-noetic-gazebo-ros-pkgs
 sudo apt-get install ros-noetic-gazebo-ros-control
 sudo apt-get install ros-noetic-hector-gazebo-plugins
 sudo apt-get install ros-noetic-teleop-twist-keyboard
+sudo apt-get install ros-noetic-teleop-twist-keyboard
+sudo apt-get install ros-noetic-teleop-twist-keyboard
 sudo apt-get install ros-noetic-rviz
+
 ```
 
 ### Python Dependencies
@@ -444,6 +447,8 @@ Source the workspace:
 ```bash
 source ~/catkin_ws/devel/setup.bash
 ```
+
+
 
 ## 📝 Project Structure
 

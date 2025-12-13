@@ -1,10 +1,15 @@
 <?xml version="1.0"?>
 <launch>
   
-  <!-- Launch Gazebo with the world and spawn all drones -->
-  <include file="$(find multi_drone_sim)/launch/spawn_drones.launch">
+  <!-- Launch Gazebo (Empty World) -->
+  <env name="GAZEBO_MODEL_PATH" value="$(find multi_drone_sim)/models:/usr/share/gazebo-11/models:${GAZEBO_MODEL_PATH}" />
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find multi_drone_sim)/worlds/field_areas.world"/>
     <arg name="gui" value="true"/>
   </include>
+
+  <!-- Sequential Swarm Spawning (Fixes missing drones) -->
+  <node name="spawn_fleet" pkg="multi_drone_sim" type="spawn_fleet.py" output="screen" />
   
   <!-- Start the area exploration controller -->
   <node name="area_explorer" pkg="multi_drone_sim" type="area_explorer.py" output="screen">
@@ -18,14 +23,36 @@
   <!-- 1. Swarm Ranging (INFOCOM 2021) -->
   <node name="uwb_simulator" pkg="multi_drone_sim" type="uwb_simulator.py" output="screen" />
   
-  <!-- Decentralized Localization (Running for Drone 0 as sample) -->
+  <!-- Decentralized Localization (Running for sample subset of swarm) -->
   <node name="swarm_loc_0" pkg="multi_drone_sim" type="swarm_localization.py" output="screen">
     <param name="drone_id" value="0"/>
+  </node>
+  <node name="swarm_loc_1" pkg="multi_drone_sim" type="swarm_localization.py" output="screen">
+    <param name="drone_id" value="1"/>
+  </node>
+  <node name="swarm_loc_2" pkg="multi_drone_sim" type="swarm_localization.py" output="screen">
+    <param name="drone_id" value="2"/>
   </node>
 
   <!-- 2. Energy-Aware Planning (ICRA 2024) -->
   <!-- Mobile Charging Station -->
   <node name="ugv_manager" pkg="multi_drone_sim" type="ugv_manager.py" output="screen" />
+  
+
+  <!-- VISUALS: Spawn UGV Model (Custom Mobile Charger URDF) -->
+  <param name="ugv_description" textfile="$(find multi_drone_sim)/models/urdf/mobile_charger.urdf" />
+  
+  <node name="spawn_ugv" pkg="gazebo_ros" type="spawn_model" 
+        args="-urdf -param ugv_description -model UGV_Charger -x 0.0 -y 0.0 -z 0.325"
+        output="screen"/>
+
+  <!-- VISUALS: Spawn Custom Orange Drone (Disabled)
+  <node name="spawn_ugv" pkg="gazebo_ros" type="spawn_model" 
+        args="-sdf -file $(find multi_drone_sim)/models/quadcopter_ugv/model.sdf -model UGV_Charger -x 0.0 -y 0.0 -z 0.2"
+        output="screen"/>
+  -->
+
+
   
   <!-- Coordinated Planner -->
   <node name="energy_planner" pkg="multi_drone_sim" type="energy_planner.py" output="screen" />

@@ -657,8 +657,6 @@ def main():
         explorer_plan.append({
             'role': 'explorer',
             'area': area_name,
-            'group_index': 0,
-            'group_size': 1,
             'probability': area_profiles[area_name]['probability'],
             'role_label': 'explorer'
         })
@@ -673,12 +671,25 @@ def main():
             explorer_plan.append({
                 'role': 'explorer',
                 'area': area_name,
-                'group_index': 0,
-                'group_size': 1,
                 'probability': area_profiles[area_name]['probability'],
                 'role_label': 'explorer'
             })
             allocation_counts[area_name] += 1
+
+    # FIXED LOGIC: Update group indices and sizes
+    # Group plans by Area
+    plans_by_area = {}
+    for plan in explorer_plan:
+        if plan['area'] not in plans_by_area:
+            plans_by_area[plan['area']] = []
+        plans_by_area[plan['area']].append(plan)
+        
+    # Assign indices
+    for area_name, plans in plans_by_area.items():
+        count = len(plans)
+        for i, plan in enumerate(plans):
+            plan['group_index'] = i
+            plan['group_size'] = count
 
     faulty_plan = None
     if explorer_plan:

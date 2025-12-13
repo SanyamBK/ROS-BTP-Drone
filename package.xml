@@ -7,7 +7,8 @@
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="sachin@todo.todo">sachin</maintainer>
+  <maintainer email="sachin22424@iiit.ac.in">Sachin</maintainer>
+  <maintainer email="Sanyam22447@iiit.ac.in">Sanyam</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -69,9 +70,10 @@
   <exec_depend>std_msgs</exec_depend>
 
 
+
   <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <!-- Other tools can request additional information be placed here -->
-
+    <gazebo_ros gazebo_model_path="${prefix}/models"/>
+    <gazebo_ros gazebo_media_path="${prefix}/media"/>
   </export>
 </package>

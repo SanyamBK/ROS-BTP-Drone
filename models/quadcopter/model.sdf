@@ -124,6 +124,24 @@
         </material>
       </visual>
 
+      <!-- FIELD OF VIEW VISUALIZATION (Cone/Beam) -->
+      <visual name="visual_fov">
+        <cast_shadows>false</cast_shadows>
+        <pose>0 0 0 0 0 0</pose> <!-- Tip at drone center, pointing down (default mesh is -Z) -->
+        <geometry>
+          <mesh>
+            <uri>model://quadcopter/cone.obj</uri>
+            <scale>2.5 2.5 4.0</scale> <!-- Radius 2.5m, Depth 4.0m -->
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>0.5 0.5 0.5 0.2</ambient>
+          <diffuse>0.5 0.5 0.5 0.2</diffuse> <!-- Grey Transparent -->
+          <specular>0.1 0.1 0.1 0.1</specular>
+          <emissive>0.0 0.0 0.0 0.0</emissive>
+        </material>
+      </visual>
+
     </link>
 
     <!-- Planar move plugin for simplified drone control -->

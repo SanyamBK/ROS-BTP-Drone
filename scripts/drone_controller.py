@@ -18,10 +18,10 @@ class Battery:
         self.current_charge = capacity_mah
         self.voltage = start_voltage
         
-        # Power consumption params (Amps)
-        self.idle_current = 0.5  # Avionics only
-        self.hover_current = 15.0 # Motors hovering
-        self.flight_current_slope = 5.0 # Amps per m/s velocity
+        # Power consumption params (Amps) - BOOSTED FOR DEMO
+        self.idle_current = 0.1  # Avionics only (Low drain to prevent backup drones from dying)
+        self.hover_current = 80.0 # Motors hovering (High drain to force charging events)
+        self.flight_current_slope = 20.0 # Amps per m/s velocity
         
     def consume(self, velocity, dt):
         """
@@ -62,6 +62,15 @@ class DroneController:
         # Battery Integration
         self.battery = Battery(capacity_mah=4500) # TB47/TB48 style
         self.last_update_time = rospy.Time.now()
+        
+        # Charging Subscriber
+        rospy.Subscriber(f'/drone_{drone_id}/charge_cmd', Float32, self.charge_callback)
+        
+    def charge_callback(self, msg):
+        """Instant recharge from UGV"""
+        if msg.data >= 100.0:
+            self.battery.current_charge = self.battery.capacity_mah
+            rospy.loginfo(f"Drone {self.drone_id} Fully Recharged!")
         
         rospy.loginfo(f"Drone {drone_id} controller initialized. Target: {target_area}")
     

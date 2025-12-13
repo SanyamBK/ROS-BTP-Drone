@@ -113,9 +113,22 @@ class SwarmLocalization:
                 belief_uncertainty = 999.0
 
             # VISIBILITY UPDATE: Log fix and Belief Uncertainty
+            # Calculate simple velocity (dist / time) since last fix or use odom if avail
+            # For this log, we'll use a placeholder or derived value
+            vel_mag = 0.0
+            if hasattr(self, 'last_pos') and hasattr(self, 'last_time'):
+                dt = (rospy.Time.now() - self.last_time).to_sec()
+                if dt > 0:
+                    dist = np.linalg.norm(np.array([p.x, p.y, p.z]) - self.last_pos)
+                    vel_mag = dist / dt
+            
+            self.last_pos = np.array([p.x, p.y, p.z])
+            self.last_time = rospy.Time.now()
+
             rospy.loginfo_throttle(5.0, 
-                f"[SwarmLoc] Drone {self.drone_id} Pos: ({p.x:.1f}, {p.y:.1f}) | "
-                f"Belief Uncertainty (tr(Sum)): {belief_uncertainty:.4f}"
+                f"[SwarmLoc] Time: {rospy.Time.now().to_sec():.2f} | Drone {self.drone_id} | "
+                f"Pos: ({p.x:.1f}, {p.y:.1f}) | Vel: {vel_mag:.2f} m/s | "
+                f"Belief Uncertainty (tr(Sigma)): {belief_uncertainty:.4f}"
             )
             
             error = np.mean(np.abs(res.fun))
