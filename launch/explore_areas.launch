@@ -36,7 +36,30 @@
 
   <!-- 2. Energy-Aware Planning (ICRA 2024) -->
   <!-- Mobile Charging Station -->
-  <node name="ugv_manager" pkg="multi_drone_sim" type="ugv_manager.py" output="screen" />
+  <!-- UGV #1 -->
+  <node name="ugv1_manager" pkg="multi_drone_sim" type="ugv_manager.py" output="screen">
+    <param name="namespace" value="ugv1" />
+    <param name="ugv_id" value="UGV 1" />
+    <param name="model_name" value="UGV_Charger" />
+    <param name="start_x" value="0.0" />
+    <param name="start_y" value="0.0" />
+    <param name="other_ugv_odom_topic" value="/ugv2/odom" />
+    <param name="min_separation" value="2.0" />
+    <rosparam param="patrol_waypoints">[[-12, 5], [-2, 5], [-2, 12], [-12, 12]]</rosparam>
+  </node>
+  
+  <!-- UGV #2 (different patrol loop + opposite corner start) -->
+  <node name="ugv2_manager" pkg="multi_drone_sim" type="ugv_manager.py" output="screen">
+    <param name="namespace" value="ugv2" />
+    <param name="ugv_id" value="UGV 2" />
+    <param name="model_name" value="UGV_Charger_2" />
+    <param name="start_x" value="-14.0" />
+    <param name="start_y" value="14.0" />
+    <param name="other_ugv_odom_topic" value="/ugv1/odom" />
+    <param name="min_separation" value="2.0" />
+    <!-- Larger outer loop so it doesn't overlap UGV #1's tighter loop -->
+    <rosparam param="patrol_waypoints">[[-16, 2], [2, 2], [2, 16], [-16, 16]]</rosparam>
+  </node>
   
 
   <!-- VISUALS: Spawn UGV Model (Custom Mobile Charger URDF) -->
@@ -45,6 +68,11 @@
   <node name="spawn_ugv" pkg="gazebo_ros" type="spawn_model" 
         args="-urdf -param ugv_description -model UGV_Charger -x 0.0 -y 0.0 -z 0.325"
         output="screen"/>
+
+  <!-- VISUALS: Spawn UGV Model #2 -->
+  <node name="spawn_ugv_2" pkg="gazebo_ros" type="spawn_model" 
+    args="-urdf -param ugv_description -model UGV_Charger_2 -x -14.0 -y 14.0 -z 0.325"
+    output="screen"/>
 
   <!-- VISUALS: Spawn Custom Orange Drone (Disabled)
   <node name="spawn_ugv" pkg="gazebo_ros" type="spawn_model" 

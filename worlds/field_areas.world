@@ -248,5 +248,12 @@
       </link>
     </model>
 
+    <!-- Central Command Tower - Outside farmland area -->
+    <include>
+      <uri>model://central_tower</uri>
+      <name>central_tower</name>
+      <pose>-5 -20 0 0 0 0</pose>
+    </include>
+
   </world>
 </sdf>
