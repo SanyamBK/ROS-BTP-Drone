@@ -315,7 +315,11 @@ class DroneExplorer:
         center_x = self.area_config['x']
         center_y = self.area_config['y']
         area_size = self.area_config['size']
-        altitude = self.exploration_config['flight_altitude']
+        
+        # FIX: User requested variable heights. Assign random altitude per drone.
+        # Was previously reading fixed 'flight_altitude' from yaml (2.0m)
+        altitude = random.uniform(3.0, 3.5)
+        
         spacing = self.exploration_config['waypoint_spacing']
         
         # Calculate area boundaries - STRICT boundaries for colored areas
@@ -631,6 +635,206 @@ class DroneExplorer:
             self.record_summary('stopped', note='Exploration halted early')
 
         self.stop_motion()
+        rospy.loginfo(
+            f"[Drone {self.drone_id}] Risk report -> actual {self.actual_probability*100:.1f}% | "
+            f"onboard {self.measured_probability*100:.1f}% | error {self.risk_error_pct:+.2f}% | "
+            f"boundary corrections {self.boundary_events}"
+        )
+
+
+class BackupDrone:
+    """Backup drone that stays at starting position"""
+    def __init__(self, drone_id, start_pos, result_aggregator=None, measurement_noise=0.05):
+        self.drone_id = drone_id
+        self.start_pos = start_pos
+        self.current_pose = None
+        self.result_aggregator = result_aggregator
+        self.measurement_noise = abs(measurement_noise)
+
+        self.actual_probability = 0.0
+        self.measured_probability = clamp(
+            self.actual_probability * (1.0 + random.uniform(-self.measurement_noise, self.measurement_noise))
+        )
+        self.risk_error_pct = (self.measured_probability - self.actual_probability) * 100.0
+        # Subscribe to odometry
+        # Use absolute path to ensure we hit the global topic
+        odom_topic = f"/drone_{drone_id}/odom"
+        self.odom_sub = rospy.Subscriber(
+            odom_topic, Odometry, self.odom_callback
+        )
+        
+        # Publisher for velocity control
+        cmd_vel_topic = f"/drone_{drone_id}/cmd_vel"
+        self.cmd_vel_pub = rospy.Publisher(
+            cmd_vel_topic, Twist, queue_size=1
+        )
+    
+    def land(self):
+        """Land the drone"""
+        rospy.loginfo(f"[Drone {self.drone_id}] Landing...")
+        rate = rospy.Rate(10)
+        
+        # Simple open-loop descent
+        for _ in range(50):
+            cmd = Twist()
+            cmd.linear.z = -0.5
+            self.cmd_vel_pub.publish(cmd)
+            rate.sleep()
+            
+        # Stop
+        self.cmd_vel_pub.publish(Twist())
+
+class CoverageGrid:
+    def __init__(self, min_x, max_x, min_y, max_y, resolution=0.5):
+        self.min_x = min_x
+        self.max_x = max_x
+        self.min_y = min_y
+        self.max_y = max_y
+        self.res = resolution
+        
+        self.cols = int((max_x - min_x) / resolution) + 1
+        self.rows = int((max_y - min_y) / resolution) + 1
+        
+        # 0 = Uncovered, 1 = Covered
+        self.grid = np.zeros((self.rows, self.cols), dtype=np.uint8)
+        self.total_cells = self.rows * self.cols
+        self.covered_cells = 0
+
+    def update(self, x, y, radius):
+        """Mark cells within radius of (x,y) as covered"""
+        # Convert world circle to grid indices
+        # Simple bounding box check for speed
+        
+        # Grid coordinates of the center
+        gx = int((x - self.min_x) / self.res)
+        gy = int((y - self.min_y) / self.res)
+        
+        # Grid radius
+        gr = int(radius / self.res)
+        
+        # Bounding box of the circle on the grid
+        y_min = max(0, gy - gr)
+        y_max = min(self.rows, gy + gr + 1)
+        x_min = max(0, gx - gr)
+        x_max = min(self.cols, gx + gr + 1)
+        
+        # Iterate over bounding box
+        for r in range(y_min, y_max):
+            for c in range(x_min, x_max):
+                if self.grid[r, c] == 1:
+                    continue
+                
+                # Check distance
+                # cell center in world coords
+                cell_wx = self.min_x + c * self.res + self.res/2
+                cell_wy = self.min_y + r * self.res + self.res/2
+                
+                if (cell_wx - x)**2 + (cell_wy - y)**2 <= radius**2:
+                    self.grid[r, c] = 1
+                    self.covered_cells += 1
+                    
+    def get_progress(self):
+        if self.total_cells == 0: return 0.0
+        return float(self.covered_cells) / self.total_cells
+
+    def explore(self):
+        """
+        Main exploration loop
+        Executes the coverage path while monitoring battery and risk
+        """
+        rate = rospy.Rate(10)
+        self.mission_active = True
+        waypoint_idx = 0
+        
+        # Initialize Dynamic Coverage Grid
+        # Use simple heuristic: Cone radius = Altitude * 0.625 (matches visual mesh scale)
+        self.coverage_grid = CoverageGrid(self.min_x, self.max_x, self.min_y, self.max_y, resolution=0.5)
+        self.last_progress_log = 0.0 # Initialize for progress logging
+        
+        rospy.loginfo(f"[Drone {self.drone_id}] Starting dynamic coverage sweep...")
+        
+        while not rospy.is_shutdown() and self.mission_active:
+            # 1. Check Battery
+            if self.battery_level < 20.0:
+                rospy.logwarn(f"[Drone {self.drone_id}] Low battery ({self.battery_level:.1f})! Returning to base.")
+                self.return_to_base()
+                break
+                
+            # 2. Get current pose
+            if self.current_pose is None:
+                rate.sleep()
+                continue
+                
+            curr_x = self.current_pose.position.x
+            curr_y = self.current_pose.position.y
+            curr_z = self.current_pose.position.z
+            
+            # --- DYNAMIC COVERAGE LOGIC ---
+            # Calculate cone radius based on altitude
+            # Visual cone scale in SDF is 2.5/4.0 ~= 0.625
+            fov_radius = max(0.5, curr_z * 0.625)
+            
+            # Update grid
+            self.coverage_grid.update(curr_x, curr_y, fov_radius)
+            progress = self.coverage_grid.get_progress()
+            
+            # Log progress periodically (every 10%)
+            if progress >= self.last_progress_log + 0.10:
+                 rospy.loginfo(f"[Drone {self.drone_id}] Dynamic Coverage: {progress*100:.1f}% (Alt: {curr_z:.1f}m, Radius: {fov_radius:.1f}m)")
+                 self.last_progress_log = progress
+
+            # 3. Navigation Logic (Waypoint Following)
+            if waypoint_idx < len(self.waypoints):
+                target_x, target_y, target_z = self.waypoints[waypoint_idx]
+                
+                # Simple P-Controller
+                dist, angle = self.get_dist_angle(target_x, target_y)
+                
+                # Calculate errors
+                yaw = self.current_yaw
+                angle_diff = angle - yaw
+                
+                # Customize for "Dynamic Vision": Ensure we maintain altitude for coverage
+                # If we are too low, coverage is small. If too high, resolution drops (not modeled here, but good conceptually)
+                
+                # Check arrival
+                if dist < 0.5:
+                    waypoint_idx += 1
+                    # rospy.loginfo(f"[Drone {self.drone_id}] Reached waypoint {waypoint_idx}/{len(self.waypoints)}")
+                
+                # Control output
+                cmd = Twist()
+                
+                # Rotate to face target
+                # Normalize angle
+                while angle_diff > math.pi: angle_diff -= 2*math.pi
+                while angle_diff < -math.pi: angle_diff += 2*math.pi
+                
+                if abs(angle_diff) > 0.5:
+                    cmd.angular.z = max(-0.5, min(0.5, angle_diff))
+                else:
+                    cmd.linear.x = min(1.0, dist)  # Move forward
+                    cmd.angular.z = angle_diff     # Fine tune heading
+                    
+                    # Altitude control
+                    z_err = target_z - curr_z
+                    cmd.linear.z = max(-0.5, min(0.5, z_err))
+                
+                self.cmd_vel_pub.publish(cmd)
+                
+            else:
+                # Mission Complete
+                rospy.loginfo(f"[CHECK] [Drone {self.drone_id}] Completed {self.farm_name} coverage! Final Dynamic Coverage: {progress*100:.1f}%")
+                
+                # Record results
+                self.record_mission_result(final_pos=f"({curr_x:.1f}, {curr_y:.1f})", status="success")
+                
+                self.mission_active = False
+                self.notes = []
+                self.last_progress_log = 0.0
+                self.return_to_base()
+            
+            rate.sleep()
         rospy.loginfo(
             f"[Drone {self.drone_id}] Risk report -> actual {self.actual_probability*100:.1f}% | "
             f"onboard {self.measured_probability*100:.1f}% | error {self.risk_error_pct:+.2f}% | "

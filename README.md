@@ -53,6 +53,8 @@ Climate change is increasing the frequency and severity of agricultural droughts
 - **Energy-Aware Planning (Active)**: Cooperative recharging with mobile UGV station from *ICRA 2024*. UGV actively intercepts low-battery drones.
 - **Auto-Shutdown**: Simulation automatically terminates 5 seconds after all exploration missions are complete, facilitating batch experiments.
 - **Centralized Communication**: A static "Central Tower" node coordinates the fleet using a robust **3-Way Handshake Protocol** (Hello -> Hi -> Connection Established).
+- **Dynamic Vision (Swept Area)**: Coverage is calculated in real-time based on the "swept area" of the drone's moving field-of-view, simulating realistic sensor footprint data collection.
+- **3D Flight Dynamics**: Drones operate at variable altitudes (3.0m - 3.5m) to maintain realistic vertical separation and diverse sensor perspectives.
 
 ## 📚 Research Foundation
 The system's architecture is built upon the following key research papers:

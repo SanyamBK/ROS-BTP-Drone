@@ -7,10 +7,10 @@
       <inertial>
         <mass>1.5</mass>
         <inertia>
-          <ixx>0.029</ixx>
+          <ixx>5.0</ixx> <!-- Increased to prevent tilting -->
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.029</iyy>
+          <iyy>5.0</iyy> <!-- Increased to prevent tilting -->
           <iyz>0</iyz>
           <izz>0.055</izz>
         </inertia>
