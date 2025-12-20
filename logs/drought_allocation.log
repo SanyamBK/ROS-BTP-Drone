@@ -1,5 +1,5 @@
 MULTI-DRONE FARMLAND DROUGHT ALLOCATION REPORT
-Generated (UTC): 2025-12-20 16:06:32
+Generated (UTC): 2025-12-20 20:41:34
 
 Drought probability model:
   * Weighted rainfall deficit, soil moisture deficit, vegetation stress, and heatwave intensity
@@ -9,35 +9,35 @@ Drought probability model:
 Area drought risk summary:
 Area   Farm Name           P(drought)  RainDef  SoilDef  VegStress  HeatIdx  DroughtFreq  Trend
 -----  ------------------  ----------  -------  -------  ---------  -------  -----------  -----
-area_8  Farmland 8              93.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_2  Farmland 2              90.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_7  Farmland 7              88.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_10  Farmland 10             85.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_1  Farmland 1              78.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_6  Farmland 6              78.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_9  Farmland 9              78.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_3  Farmland 3              62.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_4  Farmland 4              35.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_5  Farmland 5              18.00%    0.00    0.00     0.00    0.00        0.00   0.00
+area_1  Farmland 1              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
+area_2  Farmland 2              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
+area_3  Farmland 3              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
+area_4  Farmland 4              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
+area_5  Farmland 5              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
+area_6  Farmland 6              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
+area_7  Farmland 7              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
+area_8  Farmland 8              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
+area_9  Farmland 9              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
+area_10  Farmland 10             48.77%    0.66    0.00     0.00    0.02        0.00   0.30
 
 Drone-to-area allocation:
 Drone  Role       Assignment (segment)              Risk   Notes
 -----  ---------  -------------------------------  ------  ---------------------------
-0      explorer  area_8  Farmland 8           1/3          93.0%  Farmland 8 (lime)
-1      explorer  area_2  Farmland 2           1/3          90.0%  Farmland 2 (blue)
-2      explorer  area_7  Farmland 7           1/3          88.0%  Farmland 7 (magenta)
-3      explorer  area_10 Farmland 10          1/2          85.0%  Farmland 10 (navy)
-4      explorer  area_1  Farmland 1           1/1          78.0%  Farmland 1 (red)
-5      explorer  area_6  Farmland 6           1/1          78.0%  Farmland 6 (cyan)
-6      explorer  area_9  Farmland 9           1/1          78.0%  Farmland 9 (olive)
-7      explorer  area_3  Farmland 3           1/1          62.0%  Farmland 3 (yellow)
-8      explorer  area_4  Farmland 4           1/1          35.0%  Farmland 4 (purple)
-9      explorer  area_5  Farmland 5           1/1          18.0%  Farmland 5 (orange)
-10     explorer  area_8  Farmland 8           2/3          93.0%  Farmland 8 (lime)
-11     explorer  area_8  Farmland 8           3/3          93.0%  Farmland 8 (lime)
-12     explorer  area_2  Farmland 2           2/3          90.0%  Farmland 2 (blue)
-13     explorer  area_2  Farmland 2           3/3          90.0%  Farmland 2 (blue)
-14     explorer  area_7  Farmland 7           2/3          88.0%  Farmland 7 (magenta)
-15     explorer  area_7  Farmland 7           3/3          88.0%  Farmland 7 (magenta)
-16     explorer  area_10 Farmland 10          2/2          85.0%  Farmland 10 (navy)
+0      explorer  area_1  Farmland 1           1/2          48.8%  Farmland 1 (red)
+1      explorer  area_2  Farmland 2           1/2          48.8%  Farmland 2 (blue)
+2      explorer  area_3  Farmland 3           1/2          48.8%  Farmland 3 (yellow)
+3      explorer  area_4  Farmland 4           1/2          48.8%  Farmland 4 (purple)
+4      explorer  area_5  Farmland 5           1/2          48.8%  Farmland 5 (orange)
+5      explorer  area_6  Farmland 6           1/2          48.8%  Farmland 6 (cyan)
+6      explorer  area_7  Farmland 7           1/2          48.8%  Farmland 7 (magenta)
+7      explorer  area_8  Farmland 8           1/1          48.8%  Farmland 8 (lime)
+8      explorer  area_9  Farmland 9           1/1          48.8%  Farmland 9 (olive)
+9      explorer  area_10 Farmland 10          1/1          48.8%  Farmland 10 (navy)
+10     explorer  area_1  Farmland 1           2/2          48.8%  Farmland 1 (red)
+11     explorer  area_2  Farmland 2           2/2          48.8%  Farmland 2 (blue)
+12     explorer  area_3  Farmland 3           2/2          48.8%  Farmland 3 (yellow)
+13     explorer  area_4  Farmland 4           2/2          48.8%  Farmland 4 (purple)
+14     explorer  area_5  Farmland 5           2/2          48.8%  Farmland 5 (orange)
+15     explorer  area_6  Farmland 6           2/2          48.8%  Farmland 6 (cyan)
+16     explorer  area_7  Farmland 7           2/2          48.8%  Farmland 7 (magenta)
 17     backup    staging-area                 n/a       ---    Holding position

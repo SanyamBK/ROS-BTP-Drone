@@ -107,7 +107,7 @@ class SwarmLocalization:
             mse = np.mean(res.fun**2)
             try:
                 # covariance matrix approximation
-                cov = np.linalg.inv(J.T @ J) * mse
+                cov = np.linalg.pinv(J.T @ J) * mse
                 belief_uncertainty = np.trace(cov) # minimization objective J = tr(Sigma)
             except np.linalg.LinAlgError:
                 belief_uncertainty = 999.0

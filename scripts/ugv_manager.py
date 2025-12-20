@@ -250,7 +250,7 @@ class MobileRechargingUGV:
             
             if dist < self.charging_radius:
                 # Drone is docking!
-                rospy.loginfo_throttle(5, f"{self.ugv_id}] Docking success! Drone {drone_id} is recharging...")
+                rospy.loginfo_throttle(5, f"[{self.ugv_id}] Docking success! Drone {drone_id} is recharging...")
                 
                 # Signal the energy planner (or any battery monitor) that charging is active
                 # We publish to a status topic that the planner can verify

@@ -82,6 +82,11 @@
 
 
   
+  <!-- 3. Centralized Communication Architecture -->
+  <node name="central_agent" pkg="multi_drone_sim" type="central_agent.py" output="screen" />
+  <node name="drone_comms" pkg="multi_drone_sim" type="drone_comm.py" output="screen" />
+  <node name="ugv_comms" pkg="multi_drone_sim" type="ugv_comm.py" output="screen" />
+
   <!-- Coordinated Planner -->
   <node name="energy_planner" pkg="multi_drone_sim" type="energy_planner.py" output="screen" />
 

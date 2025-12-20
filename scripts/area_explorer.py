@@ -984,8 +984,10 @@ def main():
     )
     rospy.loginfo("Allocation report updated with mission observations")
     
-    # Keep node running
-    rospy.spin()
+    # Validated: Auto-shutdown sequence
+    rospy.loginfo("All missions complete. Shutting down in 5 seconds...")
+    rospy.sleep(5.0)
+    rospy.signal_shutdown("All missions completed")
 
 
 if __name__ == '__main__':

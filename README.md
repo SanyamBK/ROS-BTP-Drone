@@ -50,7 +50,9 @@ Climate change is increasing the frequency and severity of agricultural droughts
 - **Probabilistic forecasting** (0.0 - 1.0 Risk Score)
 - **Fault Tolerance**: Automatic detection of sensor failures using statistical deviation from model predictions.
 - **Swarm Ranging (Active)**: Decentralized UWB-based localization from *INFOCOM 2021* fully integrated.
-- **Energy-Aware Planning (Active)**: Cooperative recharging with mobile UGV station from *ICRA 2024*. UGV actively intercepts low-battery drones. Drones simulate realistic 800mAh battery drain with random start charges.
+- **Energy-Aware Planning (Active)**: Cooperative recharging with mobile UGV station from *ICRA 2024*. UGV actively intercepts low-battery drones.
+- **Auto-Shutdown**: Simulation automatically terminates 5 seconds after all exploration missions are complete, facilitating batch experiments.
+- **Centralized Communication**: A static "Central Tower" node coordinates the fleet using a robust **3-Way Handshake Protocol** (Hello -> Hi -> Connection Established).
 
 ## 📚 Research Foundation
 The system's architecture is built upon the following key research papers:
@@ -58,7 +60,7 @@ The system's architecture is built upon the following key research papers:
 2.  **Swarm Ranging**: *Ultra-Wideband Swarm Ranging* (Shan et al., INFOCOM 2021).
 3.  **Energy Planning**: *Coverage Planning with a Mobile Recharging UGV* (Karapetyan et al., ICRA 2024).
 
-> **Note**: The system now explicitly calculates and logs the **Belief Uncertainty** ($\text{tr}(\Sigma)$) as per the IROS 2024 paper to quantify swarm localization confidence.
+> **Note**: The system now explicitly calculates and logs the **Belief Uncertainty** ($\text{tr}(\Sigma)$) as per the IROS 2024 paper. It uses the **Moore-Penrose Pseudo-Inverse** (`pinv`) to ensure robust estimation even when anchor geometry is rank-deficient (collinear).
 
 ## 🛠️ Tech Stack
 - **Fallback Mechanism**: Gracefully degrades to heuristic model if model/deps missing
@@ -290,6 +292,7 @@ The Gazebo window shows:
 
 - Overlapping regions for collaborative monitoring
 - **Mobile UGV Charger**: A ground vehicle patrolling and servicing drones.
+- **Central Command Tower**: A centralized static structure visualizing the coordination hub.
 
 
 #### View in RViz (Optional)
