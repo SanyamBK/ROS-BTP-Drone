@@ -1,0 +1,153 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <model name="central_tower">
+    
+    <!-- Static model - won't be affected by physics -->
+    <static>true</static>
+
+    <link name="tower_link">
+      <!-- Pose: centered at base, tower extends upward -->
+      <pose>0 0 2.0 0 0 0</pose>
+
+      <!-- Main Tower Body -->
+      <visual name="tower_body_visual">
+        <geometry>
+          <cylinder>
+            <radius>0.5</radius>
+            <length>4.0</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.6 1</ambient>
+          <diffuse>0.2 0.2 0.8 1</diffuse>
+          <specular>0.5 0.5 0.5 1</specular>
+        </material>
+      </visual>
+
+      <collision name="tower_body_collision">
+        <geometry>
+          <cylinder>
+            <radius>0.5</radius>
+            <length>4.0</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+
+    <!-- Tower Top / Antenna Platform -->
+    <link name="tower_top_link">
+      <pose>0 0 4.1 0 0 0</pose>
+
+      <visual name="tower_top_visual">
+        <geometry>
+          <cylinder>
+            <radius>0.7</radius>
+            <length>0.2</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.15 0.15 0.7 1</ambient>
+          <diffuse>0.3 0.3 0.9 1</diffuse>
+          <specular>0.6 0.6 0.6 1</specular>
+        </material>
+      </visual>
+
+      <collision name="tower_top_collision">
+        <geometry>
+          <cylinder>
+            <radius>0.7</radius>
+            <length>0.2</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+
+    <!-- Antenna -->
+    <link name="antenna_link">
+      <pose>0 0 4.6 0 0 0</pose>
+
+      <visual name="antenna_visual">
+        <geometry>
+          <cylinder>
+            <radius>0.05</radius>
+            <length>1.0</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.5 0.5 0.5 1</ambient>
+          <diffuse>0.7 0.7 0.7 1</diffuse>
+          <specular>0.8 0.8 0.8 1</specular>
+        </material>
+      </visual>
+    </link>
+
+    <!-- Beacon Light on top -->
+    <link name="beacon_link">
+      <pose>0 0 5.2 0 0 0</pose>
+
+      <visual name="beacon_visual">
+        <geometry>
+          <sphere>
+            <radius>0.1</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <ambient>0.9 0.1 0.1 1</ambient>
+          <diffuse>1.0 0.2 0.2 1</diffuse>
+          <specular>1.0 0.5 0.5 1</specular>
+          <emissive>0.8 0.1 0.1 1</emissive>
+        </material>
+      </visual>
+    </link>
+
+    <!-- Base Platform -->
+    <link name="base_link">
+      <pose>0 0 0.05 0 0 0</pose>
+
+      <visual name="base_visual">
+        <geometry>
+          <cylinder>
+            <radius>1.0</radius>
+            <length>0.1</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.2 0.2 0.2 1</ambient>
+          <diffuse>0.3 0.3 0.3 1</diffuse>
+          <specular>0.4 0.4 0.4 1</specular>
+        </material>
+      </visual>
+
+      <collision name="base_collision">
+        <geometry>
+          <cylinder>
+            <radius>1.0</radius>
+            <length>0.1</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+
+    <!-- Fixed joints to connect all links -->
+    <joint name="base_to_tower" type="fixed">
+      <parent>base_link</parent>
+      <child>tower_link</child>
+    </joint>
+
+    <joint name="tower_to_top" type="fixed">
+      <parent>tower_link</parent>
+      <child>tower_top_link</child>
+    </joint>
+
+    <joint name="top_to_antenna" type="fixed">
+      <parent>tower_top_link</parent>
+      <child>antenna_link</child>
+    </joint>
+
+    <joint name="antenna_to_beacon" type="fixed">
+      <parent>antenna_link</parent>
+      <child>beacon_link</child>
+    </joint>
+
+  </model>
+</sdf>

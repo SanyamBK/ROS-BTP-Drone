@@ -21,38 +21,48 @@ class MobileRechargingUGV:
     """
     
     def __init__(self):
+        # Allow multiple UGV instances by namespacing the node name.
+        # Note: we keep anonymous=True so multiple launch instances don't collide.
         rospy.init_node('ugv_manager', anonymous=True)
         
         # Link to Gazebo
         rospy.wait_for_service('/gazebo/set_model_state')
         self.set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
-        
-        # Params
-        self.x = 0.0
-        self.y = 0.0
+
+        # Params (can be overridden via ~private params)
+        self.ns = rospy.get_param('~namespace', 'ugv')
+        self.model_name = rospy.get_param('~model_name', 'UGV_Charger')
+        # Human-friendly identifier for logs (e.g. UGV1 / UGV2)
+        self.ugv_id = rospy.get_param('~ugv_id', self.ns)
+
+        self.x = float(rospy.get_param('~start_x', 0.0))
+        self.y = float(rospy.get_param('~start_y', 0.0))
         self.yaw = 0.0
         self.velocity = 0.0
-        self.omega = 0.0
-        
-        self.omega = 0.0
-        
         # State Machine
         self.state = "PATROL"
-        # UPDATED PATROL: Tighter loop around farm areas (-12,9) and (-2,11.5)
-        # Keeps UGV closer to demand.
-        self.patrol_waypoints = [(-12, 5), (-2, 5), (-2, 12), (-12, 12)]
+        # Default patrol: tighter loop around farm areas (-12,9) and (-2,11.5)
+        default_waypoints = [(-12, 5), (-2, 5), (-2, 12), (-12, 12)]
+        self.patrol_waypoints = rospy.get_param('~patrol_waypoints', default_waypoints)
         self.current_wp_idx = 0
-        
+
         # Startup Phase Logic
         self.start_time = rospy.Time.now()
-        self.init_duration = rospy.Duration(15.0) # Stay at center for 15s
-        
-        self.charging_radius = 2.0 # meters
-        
-        # Pubs/Subs
-        self.odom_pub = rospy.Publisher('/ugv/odom', Odometry, queue_size=10)
-        self.cmd_sub = rospy.Subscriber('/ugv/cmd_vel', Twist, self.cmd_callback)
-        self.charge_pub = rospy.Publisher('/ugv/charging_active', Bool, queue_size=10)
+        self.init_duration = rospy.Duration(float(rospy.get_param('~init_duration_sec', 15.0)))
+
+        self.charging_radius = float(rospy.get_param('~charging_radius', 2.0))
+
+        # UGV-UGV collision avoidance (simple separation)
+        self.min_separation = float(rospy.get_param('~min_separation', 1.5))
+        self.other_ugv_odom_topic = rospy.get_param('~other_ugv_odom_topic', '')
+        self.other_ugv_pos = None
+        if self.other_ugv_odom_topic:
+            rospy.Subscriber(self.other_ugv_odom_topic, Odometry, self._other_ugv_cb)
+
+        # Pubs/Subs (namespaced to allow multiple UGVs)
+        self.odom_pub = rospy.Publisher(f'/{self.ns}/odom', Odometry, queue_size=10)
+        self.cmd_sub = rospy.Subscriber(f'/{self.ns}/cmd_vel', Twist, self.cmd_callback)
+        self.charge_pub = rospy.Publisher(f'/{self.ns}/charging_active', Bool, queue_size=10)
         
         # We need to know where drones are to charge them
         # In a real sim we'd use a service or collision detection.
@@ -70,8 +80,8 @@ class MobileRechargingUGV:
             
         self.rate = rospy.Rate(10)
         self.last_time = rospy.Time.now()
-        
-        rospy.loginfo("[UGV] Mobile Charging Station Initialized at (0,0)")
+
+        rospy.loginfo(f"{self.ugv_id}] Mobile Charging Station Initialized at ({self.x:.1f},{self.y:.1f})")
         
         # Patrol State
         self.last_cmd_time = rospy.Time.now()
@@ -102,6 +112,21 @@ class MobileRechargingUGV:
             self.omega = 0.0
             self.velocity = 1.0 # 1 m/s patrol speed
 
+    def _other_ugv_cb(self, msg: Odometry):
+        self.other_ugv_pos = msg.pose.pose.position
+
+    def _apply_separation(self):
+        """If another UGV is too close, slow/stop to avoid collision."""
+        if self.other_ugv_pos is None:
+            return
+        dx = self.other_ugv_pos.x - self.x
+        dy = self.other_ugv_pos.y - self.y
+        dist = sqrt(dx * dx + dy * dy)
+        if dist < self.min_separation:
+            # Full stop if we're within the minimum distance.
+            self.velocity = 0.0
+            self.omega = 0.0
+
     def cmd_callback(self, msg):
         self.velocity = msg.linear.x
         self.omega = msg.angular.z
@@ -131,12 +156,11 @@ class MobileRechargingUGV:
         self.last_time = current
         
         # Check for idle timeout (auto-patrol)
-        # Startup Phase: Keep at center for first 15s
+        # Startup Phase: keep at start pose for init_duration
         if (current - self.start_time) < self.init_duration:
             self.velocity = 0.0
             self.omega = 0.0
-            self.x = 0.0
-            self.y = 0.0
+            # Hold initial position
         elif (current - self.last_cmd_time).to_sec() > 1.0:
             # INTERCEPT LOGIC
             priority_drone = self.get_priority_target()
@@ -146,10 +170,13 @@ class MobileRechargingUGV:
                 target_pos = self.drone_positions[priority_drone]
                 self.move_towards(target_pos.x, target_pos.y, dt)
                 if current.to_sec() % 5.0 < 0.1:
-                    rospy.loginfo_throttle(5, f"[UGV] Responding to Low Battery: Drone {priority_drone} ({self.drone_batteries[priority_drone]:.1f}%)")
+                    rospy.loginfo_throttle(5, f"[{self.ugv_id}] Responding to Low Battery: Drone {priority_drone} ({self.drone_batteries[priority_drone]:.1f}%)")
             else:
                 # Default Patrol
                 self.run_patrol_logic(dt)
+
+        # Always enforce UGV-UGV separation once velocity/omega is chosen
+        self._apply_separation()
         
         # Simple differential drive kinematics
         self.x += self.velocity * cos(self.yaw) * dt
@@ -174,7 +201,7 @@ class MobileRechargingUGV:
 
     def sync_gazebo_state(self):
         state = ModelState()
-        state.model_name = "UGV_Charger"
+        state.model_name = self.model_name
         state.pose.position.x = self.x
         state.pose.position.y = self.y
         state.pose.position.z = 0.325
@@ -223,7 +250,7 @@ class MobileRechargingUGV:
             
             if dist < self.charging_radius:
                 # Drone is docking!
-                rospy.loginfo_throttle(5, f"[UGV] Docking success! Drone {drone_id} is recharging...")
+                rospy.loginfo_throttle(5, f"{self.ugv_id}] Docking success! Drone {drone_id} is recharging...")
                 
                 # Signal the energy planner (or any battery monitor) that charging is active
                 # We publish to a status topic that the planner can verify
@@ -231,16 +258,16 @@ class MobileRechargingUGV:
 
     def wait_for_model(self):
         """Block until the UGV model is actually spawned in Gazebo."""
-        rospy.loginfo("[UGV] Waiting for 'UGV_Charger' model to spawn...")
+        rospy.loginfo(f"[{self.ugv_id}] Waiting for '{self.model_name}' model to spawn...")
         while not rospy.is_shutdown():
             try:
                 msg = rospy.wait_for_message('/gazebo/model_states', ModelStates, timeout=1.0)
-                if "UGV_Charger" in msg.name:
-                    rospy.loginfo("[UGV] Model spawned! Starting control.")
+                if self.model_name in msg.name:
+                    rospy.loginfo(f"[{self.ugv_id}] Model spawned! Starting control.")
                     return
             except rospy.ROSException:
                 pass
-            rospy.loginfo_throttle(2, "[UGV] Still waiting for model spawn...")
+            rospy.loginfo_throttle(2, f"[{self.ugv_id}] Still waiting for model spawn...")
 
     def run(self):
         self.wait_for_model()
