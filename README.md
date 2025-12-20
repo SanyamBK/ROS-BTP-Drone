@@ -412,6 +412,12 @@ wᵢ = 1 / σ²ᵢ                    # Weight inversely proportional to varianc
 σ²_fused = 1 / Σ(wᵢ)            # Combined variance
 ```
 
+### UGV Path Planning
+- **Algorithm**: Dijkstra's Algorithm (Grid-based)
+- **Resolution**: 2.0m grid cells
+- **Cost Function**: Uniform cost (shortest path)
+- **Fallback**: Direct P-Control if no path found
+
 ## 📊 System Specifications
 
 ### Fleet Composition
