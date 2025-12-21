@@ -52,7 +52,7 @@ Climate change is increasing the frequency and severity of agricultural droughts
 - **Swarm Ranging (Active)**: Decentralized UWB-based localization from *INFOCOM 2021* fully integrated.
 - **Energy-Aware Planning (Active)**: Cooperative recharging with mobile UGV station from *ICRA 2024*. UGV actively intercepts low-battery drones.
 - **Auto-Shutdown**: Simulation automatically terminates 5 seconds after all exploration missions are complete, facilitating batch experiments.
-- **Centralized Communication**: A static "Central Tower" node coordinates the fleet using a robust **3-Way Handshake Protocol** (Hello -> Hi -> Connection Established).
+- **Centralized Communication**: A static "Central Tower" node coordinates the fleet using a robust **Asynchronous 3-Way Handshake** (Hello -> Hi -> Queue -> Ack). The tower processes connection requests via a 10Hz queue to simulate realistic processing latency.
 - **Dynamic Vision (Swept Area)**: Coverage is calculated in real-time based on the "swept area" of the drone's moving field-of-view, simulating realistic sensor footprint data collection.
 - **3D Flight Dynamics**: Drones operate at variable altitudes (3.0m - 3.5m) to maintain realistic vertical separation and diverse sensor perspectives.
 
@@ -85,6 +85,22 @@ The system's architecture is built upon the following key research papers:
 - **Color-coded risk indicators** (red = high, green = low)
 - **Real-time status updates** via ROS topics
 - **Comprehensive logging** for mission analysis
+
+## 📡 ROS Communication Architecture
+
+The system relies on a distributed node architecture with specific topics for command, control, and coordination:
+
+| Node Name | Function | Published Topics | Subscribed Topics |
+|-----------|----------|------------------|-------------------|
+| `central_agent` | Fleet Command Tower | `/central/comm` (String) | `/comm/agents` (String) |
+| `drone_comm_manager` | Drone Comm. Relay | `/comm/agents` (String) | `/central/comm` (String) |
+| `area_explorer` (x18) | Drone Autonomy | `/drone_{id}/cmd_vel` (Twist)<br>`/drone_{id}/battery` (Float32) | `/drone_{id}/odom` (Odometry)<br>`/drone_{id}/charge_cmd` (Float32) |
+| `ugv_manager` (x2) | Mobile Charging Station | `/ugv_{id}/cmd_vel` (Twist)<br>`/comm/agents` (String) | `/ugv_{id}/odom` (Odometry)<br>`/central/comm` (String) |
+
+### Key Topic Functions
+- **`/central/comm`**: Global broadcast channel for the Central Tower (e.g., `HELLO`).
+- **`/comm/agents`**: Return channel for Distributed Agents (e.g., `AGENT_HI_DRONE_5`).
+- **`/drone_{id}/odom`**: Local odometry data for each drone (simulated GPS/IMU).
 
 ## 🏗️ System Architecture
 

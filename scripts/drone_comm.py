@@ -67,7 +67,7 @@ class VirtualDrone:
     def receive_ack(self):
         """Step 3 Complete: Connection Established"""
         if not self.connected:
-            # rospy.loginfo(f"[{self.name}] Connection Established! (ACK Received)")
+            rospy.loginfo(f"[{self.name}] Connection Established! (ACK Received)")
             self.connected = True
         else:
             # Keep alive

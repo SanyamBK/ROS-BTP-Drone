@@ -52,7 +52,7 @@ class VirtualUGV:
 
     def receive_ack(self):
         if not self.connected:
-            # rospy.loginfo(f"[{self.name}] 3-Way Handshake Complete. Link Stable.")
+            rospy.loginfo(f"[{self.name}] Connection Established. (ACK Received)")
             self.connected = True
 
 if __name__ == '__main__':
