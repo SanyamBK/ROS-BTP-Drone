@@ -1,0 +1,29 @@
+MULTI-DRONE MISSION SUMMARY
+Generated (UTC): 2025-12-31 11:45:03
+
+Central Agent: Tower beacon stopped after mission_complete (HELLO/ACK queue drained)
+UGV Chargers: Parked after mission_complete signal
+
+Area centers and assignments:
+Area    Center (x,y)   Color     Drones
+-----   -------------  --------  -------------------
+area_1  (-12.0,  9.0)  red       [0, 1]
+area_2  ( -2.0, 11.5)  blue      [2, 3]
+area_3  ( 11.0,  7.5)  yellow    [4, 5]
+area_4  (-10.0,  0.0)  purple    [6, 7]
+area_5  (  1.0, -1.0)  orange    [8, 9]
+
+Drone docking/finish states:
+Drone  Role       Area       Final (x,y)     Status      Notes
+-----  ---------  ---------  --------------  ----------  ---------------------------
+0      explorer   area_1     (-12.2, 9.0)    complete    Onboard risk error -2.14% against model; Returned to center
+1      explorer   area_1     (-11.8, 9.0)    complete    Onboard risk error +5.83% against model; Returned to center
+2      explorer   area_2     (-2.2, 11.5)    complete    Onboard risk error -9.24% against model; Returned to center
+3      explorer   area_2     (-1.8, 11.5)    complete    Onboard risk error -9.52% against model; Returned to center
+4      explorer   area_3     (10.8, 7.5)     complete    Onboard risk error +0.87% against model; Returned to center
+5      explorer   area_3     (11.2, 7.5)     complete    Onboard risk error +0.54% against model; Returned to center
+6      explorer   area_4     (-10.2, 0.0)    complete    Onboard risk error -8.29% against model; Returned to center
+7      explorer   area_4     (-9.8, -0.0)    complete    Onboard risk error -2.06% against model; Returned to center
+8      explorer   area_5     (0.8, -1.0)     complete    Onboard risk error +0.21% against model; Returned to center
+9      explorer   area_5     (1.2, -1.0)     complete    Onboard risk error -0.78% against model; Returned to center
+10     backup     staging    --              n/a         

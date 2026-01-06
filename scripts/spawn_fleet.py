@@ -18,13 +18,12 @@ def spawn_fleet():
         model_xml = f.read()
 
     # Coordinates from legacy spawn_drones.launch
+    # Updated to spawn only 10 drones (2 per farmland)
     positions = [
         (0.0, -20.0), (0.5, -20.0), (-0.5, -20.0),
         (0.0, -19.5), (0.0, -20.5), (0.3, -19.7),
         (-0.3, -19.7), (0.3, -20.3), (-0.3, -20.3),
-        (0.5, -19.5), (-0.5, -19.5), (0.7, -20.7),
-        (-0.7, -20.7), (0.0, -19.3), (0.5, -20.7),
-        (-0.5, -20.7), (0.0, -21.0), (0.3, -21.0)
+        (0.5, -19.5)
     ]
     
     # z_height = 0.2 (Old fixed height)

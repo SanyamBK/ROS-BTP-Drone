@@ -698,7 +698,14 @@ def main():
         faulty_plan['role_label'] = 'faulty-explorer'
     faulty_area_name = faulty_plan['area'] if faulty_plan else None
 
-    reserve_count = 0
+    reserve_count = allocation_cfg.get('reserve_drones', 0)
+    
+    # Calculate how many backup drones we should have
+    expected_explorers = num_drones - reserve_count
+    
+    # Trim explorer_plan if we have too many (shouldn't happen with correct config)
+    explorer_plan = explorer_plan[:expected_explorers]
+    
     full_plan = list(explorer_plan)
 
     auditor_assigned = False
@@ -713,6 +720,7 @@ def main():
     remaining_backups = reserve_count - (1 if auditor_assigned else 0)
     full_plan.extend({'role': 'backup', 'role_label': 'backup'} for _ in range(max(0, remaining_backups)))
 
+    # Ensure we have exactly num_drones in the plan
     while len(full_plan) < num_drones:
         full_plan.append({'role': 'backup', 'role_label': 'backup'})
 

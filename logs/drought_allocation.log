@@ -1,5 +1,5 @@
 MULTI-DRONE FARMLAND DROUGHT ALLOCATION REPORT
-Generated (UTC): 2025-12-20 16:06:32
+Generated (UTC): 2025-12-31 11:45:03
 
 Drought probability model:
   * Weighted rainfall deficit, soil moisture deficit, vegetation stress, and heatwave intensity
@@ -9,35 +9,37 @@ Drought probability model:
 Area drought risk summary:
 Area   Farm Name           P(drought)  RainDef  SoilDef  VegStress  HeatIdx  DroughtFreq  Trend
 -----  ------------------  ----------  -------  -------  ---------  -------  -----------  -----
-area_8  Farmland 8              93.00%    0.00    0.00     0.00    0.00        0.00   0.00
 area_2  Farmland 2              90.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_7  Farmland 7              88.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_10  Farmland 10             85.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_1  Farmland 1              78.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_6  Farmland 6              78.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_9  Farmland 9              78.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_3  Farmland 3              62.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_4  Farmland 4              35.00%    0.00    0.00     0.00    0.00        0.00   0.00
-area_5  Farmland 5              18.00%    0.00    0.00     0.00    0.00        0.00   0.00
+area_4  Farmland 4              75.00%    0.00    0.00     0.00    0.00        0.00   0.00
+area_1  Farmland 1              42.00%    0.00    0.00     0.00    0.00        0.00   0.00
+area_3  Farmland 3              18.00%    0.00    0.00     0.00    0.00        0.00   0.00
+area_5  Farmland 5              15.00%    0.00    0.00     0.00    0.00        0.00   0.00
 
 Drone-to-area allocation:
 Drone  Role       Assignment (segment)              Risk   Notes
 -----  ---------  -------------------------------  ------  ---------------------------
-0      explorer  area_8  Farmland 8           1/3          93.0%  Farmland 8 (lime)
-1      explorer  area_2  Farmland 2           1/3          90.0%  Farmland 2 (blue)
-2      explorer  area_7  Farmland 7           1/3          88.0%  Farmland 7 (magenta)
-3      explorer  area_10 Farmland 10          1/2          85.0%  Farmland 10 (navy)
-4      explorer  area_1  Farmland 1           1/1          78.0%  Farmland 1 (red)
-5      explorer  area_6  Farmland 6           1/1          78.0%  Farmland 6 (cyan)
-6      explorer  area_9  Farmland 9           1/1          78.0%  Farmland 9 (olive)
-7      explorer  area_3  Farmland 3           1/1          62.0%  Farmland 3 (yellow)
-8      explorer  area_4  Farmland 4           1/1          35.0%  Farmland 4 (purple)
-9      explorer  area_5  Farmland 5           1/1          18.0%  Farmland 5 (orange)
-10     explorer  area_8  Farmland 8           2/3          93.0%  Farmland 8 (lime)
-11     explorer  area_8  Farmland 8           3/3          93.0%  Farmland 8 (lime)
-12     explorer  area_2  Farmland 2           2/3          90.0%  Farmland 2 (blue)
-13     explorer  area_2  Farmland 2           3/3          90.0%  Farmland 2 (blue)
-14     explorer  area_7  Farmland 7           2/3          88.0%  Farmland 7 (magenta)
-15     explorer  area_7  Farmland 7           3/3          88.0%  Farmland 7 (magenta)
-16     explorer  area_10 Farmland 10          2/2          85.0%  Farmland 10 (navy)
-17     backup    staging-area                 n/a       ---    Holding position
+0      explorer  area_1  Farmland 1           1/2          42.0%  Farmland 1 (red)
+1      explorer  area_1  Farmland 1           2/2          42.0%  Farmland 1 (red)
+2      explorer  area_2  Farmland 2           1/2          90.0%  Farmland 2 (blue)
+3      explorer  area_2  Farmland 2           2/2          90.0%  Farmland 2 (blue)
+4      explorer  area_3  Farmland 3           1/2          18.0%  Farmland 3 (yellow)
+5      explorer  area_3  Farmland 3           2/2          18.0%  Farmland 3 (yellow)
+6      explorer  area_4  Farmland 4           1/2          75.0%  Farmland 4 (purple)
+7      explorer  area_4  Farmland 4           2/2          75.0%  Farmland 4 (purple)
+8      explorer  area_5  Farmland 5           1/2          15.0%  Farmland 5 (orange)
+9      explorer  area_5  Farmland 5           2/2          15.0%  Farmland 5 (orange)
+10     backup    staging-area                 n/a       ---    Holding position
+
+Mission risk observations:
+Drone  Farm Name           Actual  Onboard  Error   Bounds  Final (x,y)     Status   Notes
+-----  ------------------  -------  -------  -------  ------  --------------  -------  ---------------------------
+0      Farmland 1            42.0%    39.9%   -2.14%  0       (-12.2, 9.0)    complete  Onboard risk error -2.14% against model; Returned to center
+1      Farmland 1            42.0%    47.8%   +5.83%  0       (-11.8, 9.0)    complete  Onboard risk error +5.83% against model; Returned to center
+2      Farmland 2            90.0%    80.8%   -9.24%  0       (-2.2, 11.5)    complete  Onboard risk error -9.24% against model; Returned to center
+3      Farmland 2            90.0%    80.5%   -9.52%  0       (-1.8, 11.5)    complete  Onboard risk error -9.52% against model; Returned to center
+4      Farmland 3            18.0%    18.9%   +0.87%  0       (10.8, 7.5)     complete  Onboard risk error +0.87% against model; Returned to center
+5      Farmland 3            18.0%    18.5%   +0.54%  0       (11.2, 7.5)     complete  Onboard risk error +0.54% against model; Returned to center
+6      Farmland 4            75.0%    66.7%   -8.29%  0       (-10.2, 0.0)    complete  Onboard risk error -8.29% against model; Returned to center
+7      Farmland 4            75.0%    72.9%   -2.06%  0       (-9.8, -0.0)    complete  Onboard risk error -2.06% against model; Returned to center
+8      Farmland 5            15.0%    15.2%   +0.21%  0       (0.8, -1.0)     complete  Onboard risk error +0.21% against model; Returned to center
+9      Farmland 5            15.0%    14.2%   -0.78%  0       (1.2, -1.0)     complete  Onboard risk error -0.78% against model; Returned to center

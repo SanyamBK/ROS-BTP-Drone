@@ -1,0 +1,363 @@
+[2025-12-29T12:01:21.839661] [DroneNet] Ready with 10 drones
+[2025-12-29T12:01:22.026496] [CENTRAL_TOWER] Online. Waiting for drone fleet to deploy...
+[2025-12-29T12:01:22.161746] [UGVNet] UGV Communication Channels Open.
+[2025-12-29T12:02:02.431786] [CENTRAL_TOWER] Fleet Deployed. Starting 3-Way Handshake (Period: 10s)...
+[2025-12-29T12:02:21.080684] [CENTRAL_TOWER] >>> Broadcasting: HELLO
+[2025-12-29T12:02:21.081234] [DroneNet] HELLO received from central
+[2025-12-29T12:02:21.082057] [UGVNet] HELLO received from central
+[2025-12-29T12:02:21.378183] [DRONE_6] Heard HELLO. Sending HI...
+[2025-12-29T12:02:21.379004] [CENTRAL_TOWER] HI received from DRONE_6 (queued for ACK)
+[2025-12-29T12:02:21.568352] [CENTRAL_TOWER] Received HI from DRONE_6. ACK sent.
+[2025-12-29T12:02:21.569744] [DRONE_6] Connection Established! (ACK Received)
+[2025-12-29T12:02:21.569846] [DRONE_6] ACK received from central
+[2025-12-29T12:02:21.724567] [DRONE_1] Heard HELLO. Sending HI...
+[2025-12-29T12:02:21.724897] [CENTRAL_TOWER] HI received from DRONE_1 (queued for ACK)
+[2025-12-29T12:02:21.838741] [CENTRAL_TOWER] Received HI from DRONE_1. ACK sent.
+[2025-12-29T12:02:21.840040] [DRONE_1] Connection Established! (ACK Received)
+[2025-12-29T12:02:21.840139] [DRONE_1] ACK received from central
+[2025-12-29T12:02:22.279162] [UGV_1] Heard HELLO. Sending HI...
+[2025-12-29T12:02:22.280245] [CENTRAL_TOWER] HI received from UGV_1 (queued for ACK)
+[2025-12-29T12:02:22.348615] [CENTRAL_TOWER] Received HI from UGV_1. ACK sent.
+[2025-12-29T12:02:22.350324] [UGV_1] Connection Established. (ACK Received)
+[2025-12-29T12:02:22.350424] [UGV_1] ACK received from central
+[2025-12-29T12:02:22.404857] [DRONE_8] Heard HELLO. Sending HI...
+[2025-12-29T12:02:22.405257] [CENTRAL_TOWER] HI received from DRONE_8 (queued for ACK)
+[2025-12-29T12:02:22.545491] [CENTRAL_TOWER] Received HI from DRONE_8. ACK sent.
+[2025-12-29T12:02:22.547394] [DRONE_8] Connection Established! (ACK Received)
+[2025-12-29T12:02:22.547559] [DRONE_8] ACK received from central
+[2025-12-29T12:02:22.918415] [DRONE_3] Heard HELLO. Sending HI...
+[2025-12-29T12:02:22.918879] [CENTRAL_TOWER] HI received from DRONE_3 (queued for ACK)
+[2025-12-29T12:02:22.938864] [CENTRAL_TOWER] Received HI from DRONE_3. ACK sent.
+[2025-12-29T12:02:22.940388] [DRONE_3] Connection Established! (ACK Received)
+[2025-12-29T12:02:22.940488] [DRONE_3] ACK received from central
+[2025-12-29T12:02:23.486853] [UGV_2] Heard HELLO. Sending HI...
+[2025-12-29T12:02:23.487230] [CENTRAL_TOWER] HI received from UGV_2 (queued for ACK)
+[2025-12-29T12:02:23.651644] [CENTRAL_TOWER] Received HI from UGV_2. ACK sent.
+[2025-12-29T12:02:23.655855] [UGV_2] Connection Established. (ACK Received)
+[2025-12-29T12:02:23.656078] [UGV_2] ACK received from central
+[2025-12-29T12:02:23.928919] [DRONE_4] Heard HELLO. Sending HI...
+[2025-12-29T12:02:23.929403] [CENTRAL_TOWER] HI received from DRONE_4 (queued for ACK)
+[2025-12-29T12:02:24.014734] [DRONE_7] Heard HELLO. Sending HI...
+[2025-12-29T12:02:24.015062] [CENTRAL_TOWER] HI received from DRONE_7 (queued for ACK)
+[2025-12-29T12:02:24.120818] [CENTRAL_TOWER] Received HI from DRONE_4. ACK sent.
+[2025-12-29T12:02:24.122297] [DRONE_4] Connection Established! (ACK Received)
+[2025-12-29T12:02:24.122398] [DRONE_4] ACK received from central
+[2025-12-29T12:02:24.311681] [DRONE_0] Heard HELLO. Sending HI...
+[2025-12-29T12:02:24.312121] [CENTRAL_TOWER] HI received from DRONE_0 (queued for ACK)
+[2025-12-29T12:02:24.352109] [CENTRAL_TOWER] Received HI from DRONE_7. ACK sent.
+[2025-12-29T12:02:24.353559] [DRONE_7] Connection Established! (ACK Received)
+[2025-12-29T12:02:24.353672] [DRONE_7] ACK received from central
+[2025-12-29T12:02:24.443447] [DRONE_5] Heard HELLO. Sending HI...
+[2025-12-29T12:02:24.443886] [CENTRAL_TOWER] HI received from DRONE_5 (queued for ACK)
+[2025-12-29T12:02:24.489730] [DRONE_2] Heard HELLO. Sending HI...
+[2025-12-29T12:02:24.490454] [CENTRAL_TOWER] HI received from DRONE_2 (queued for ACK)
+[2025-12-29T12:02:24.540908] [CENTRAL_TOWER] Received HI from DRONE_0. ACK sent.
+[2025-12-29T12:02:24.542262] [DRONE_0] Connection Established! (ACK Received)
+[2025-12-29T12:02:24.542376] [DRONE_0] ACK received from central
+[2025-12-29T12:02:24.707711] [CENTRAL_TOWER] Received HI from DRONE_5. ACK sent.
+[2025-12-29T12:02:24.709311] [DRONE_5] Connection Established! (ACK Received)
+[2025-12-29T12:02:24.709422] [DRONE_5] ACK received from central
+[2025-12-29T12:02:24.760100] [DRONE_9] Heard HELLO. Sending HI...
+[2025-12-29T12:02:24.760579] [CENTRAL_TOWER] HI received from DRONE_9 (queued for ACK)
+[2025-12-29T12:02:24.934179] [CENTRAL_TOWER] Received HI from DRONE_2. ACK sent.
+[2025-12-29T12:02:24.935533] [DRONE_2] Connection Established! (ACK Received)
+[2025-12-29T12:02:24.935639] [DRONE_2] ACK received from central
+[2025-12-29T12:02:25.167341] [CENTRAL_TOWER] Received HI from DRONE_9. ACK sent.
+[2025-12-29T12:02:25.168705] [DRONE_9] Connection Established! (ACK Received)
+[2025-12-29T12:02:25.168804] [DRONE_9] ACK received from central
+[2025-12-29T12:02:42.819990] [CENTRAL_TOWER] >>> Broadcasting: HELLO
+[2025-12-29T12:02:42.820472] [DroneNet] HELLO received from central
+[2025-12-29T12:02:42.821793] [UGVNet] HELLO received from central
+[2025-12-29T12:02:44.158311] [DRONE_8] Heard HELLO. Sending HI...
+[2025-12-29T12:02:44.158727] [CENTRAL_TOWER] HI received from DRONE_8 (queued for ACK)
+[2025-12-29T12:02:44.347540] [DRONE_6] Heard HELLO. Sending HI...
+[2025-12-29T12:02:44.347913] [CENTRAL_TOWER] HI received from DRONE_6 (queued for ACK)
+[2025-12-29T12:02:44.392488] [DRONE_8] ACK received from central
+[2025-12-29T12:02:44.393253] [CENTRAL_TOWER] Received HI from DRONE_8. ACK sent.
+[2025-12-29T12:02:44.609134] [DRONE_0] Heard HELLO. Sending HI...
+[2025-12-29T12:02:44.609905] [CENTRAL_TOWER] HI received from DRONE_0 (queued for ACK)
+[2025-12-29T12:02:44.663920] [DRONE_6] ACK received from central
+[2025-12-29T12:02:44.664640] [CENTRAL_TOWER] Received HI from DRONE_6. ACK sent.
+[2025-12-29T12:02:44.673513] [DRONE_5] Heard HELLO. Sending HI...
+[2025-12-29T12:02:44.673959] [CENTRAL_TOWER] HI received from DRONE_5 (queued for ACK)
+[2025-12-29T12:02:44.980649] [DRONE_0] ACK received from central
+[2025-12-29T12:02:44.981458] [CENTRAL_TOWER] Received HI from DRONE_0. ACK sent.
+[2025-12-29T12:02:45.155260] [DRONE_1] Heard HELLO. Sending HI...
+[2025-12-29T12:02:45.155667] [CENTRAL_TOWER] HI received from DRONE_1 (queued for ACK)
+[2025-12-29T12:02:45.243265] [DRONE_5] ACK received from central
+[2025-12-29T12:02:45.243791] [CENTRAL_TOWER] Received HI from DRONE_5. ACK sent.
+[2025-12-29T12:02:45.485076] [DRONE_1] ACK received from central
+[2025-12-29T12:02:45.485548] [CENTRAL_TOWER] Received HI from DRONE_1. ACK sent.
+[2025-12-29T12:02:45.627146] [UGV_1] Heard HELLO. Sending HI...
+[2025-12-29T12:02:45.627581] [CENTRAL_TOWER] HI received from UGV_1 (queued for ACK)
+[2025-12-29T12:02:45.733477] [UGV_2] Heard HELLO. Sending HI...
+[2025-12-29T12:02:45.734293] [CENTRAL_TOWER] HI received from UGV_2 (queued for ACK)
+[2025-12-29T12:02:45.767307] [UGV_1] ACK received from central
+[2025-12-29T12:02:45.769078] [CENTRAL_TOWER] Received HI from UGV_1. ACK sent.
+[2025-12-29T12:02:46.028518] [UGV_2] ACK received from central
+[2025-12-29T12:02:46.030839] [CENTRAL_TOWER] Received HI from UGV_2. ACK sent.
+[2025-12-29T12:02:46.448166] [DRONE_2] Heard HELLO. Sending HI...
+[2025-12-29T12:02:46.448670] [CENTRAL_TOWER] HI received from DRONE_2 (queued for ACK)
+[2025-12-29T12:02:46.484306] [DRONE_9] Heard HELLO. Sending HI...
+[2025-12-29T12:02:46.484998] [CENTRAL_TOWER] HI received from DRONE_9 (queued for ACK)
+[2025-12-29T12:02:46.607786] [DRONE_2] ACK received from central
+[2025-12-29T12:02:46.609154] [CENTRAL_TOWER] Received HI from DRONE_2. ACK sent.
+[2025-12-29T12:02:46.891246] [DRONE_9] ACK received from central
+[2025-12-29T12:02:46.892497] [CENTRAL_TOWER] Received HI from DRONE_9. ACK sent.
+[2025-12-29T12:02:47.789781] [DRONE_3] Heard HELLO. Sending HI...
+[2025-12-29T12:02:47.790138] [CENTRAL_TOWER] HI received from DRONE_3 (queued for ACK)
+[2025-12-29T12:02:47.860796] [DRONE_3] ACK received from central
+[2025-12-29T12:02:47.861720] [CENTRAL_TOWER] Received HI from DRONE_3. ACK sent.
+[2025-12-29T12:02:48.164391] [DRONE_7] Heard HELLO. Sending HI...
+[2025-12-29T12:02:48.165001] [CENTRAL_TOWER] HI received from DRONE_7 (queued for ACK)
+[2025-12-29T12:02:48.169084] [DRONE_7] ACK received from central
+[2025-12-29T12:02:48.170405] [CENTRAL_TOWER] Received HI from DRONE_7. ACK sent.
+[2025-12-29T12:02:48.636687] [DRONE_4] Heard HELLO. Sending HI...
+[2025-12-29T12:02:48.641315] [CENTRAL_TOWER] HI received from DRONE_4 (queued for ACK)
+[2025-12-29T12:02:48.864462] [DRONE_4] ACK received from central
+[2025-12-29T12:02:48.865814] [CENTRAL_TOWER] Received HI from DRONE_4. ACK sent.
+[2025-12-29T12:03:04.226065] [CENTRAL_TOWER] >>> Broadcasting: HELLO
+[2025-12-29T12:03:04.227794] [UGVNet] HELLO received from central
+[2025-12-29T12:03:04.228626] [DroneNet] HELLO received from central
+[2025-12-29T12:03:04.650090] [DRONE_6] Heard HELLO. Sending HI...
+[2025-12-29T12:03:04.650965] [CENTRAL_TOWER] HI received from DRONE_6 (queued for ACK)
+[2025-12-29T12:03:04.693131] [DRONE_6] ACK received from central
+[2025-12-29T12:03:04.694986] [CENTRAL_TOWER] Received HI from DRONE_6. ACK sent.
+[2025-12-29T12:03:04.926055] [DRONE_5] Heard HELLO. Sending HI...
+[2025-12-29T12:03:04.928384] [CENTRAL_TOWER] HI received from DRONE_5 (queued for ACK)
+[2025-12-29T12:03:05.032759] [DRONE_5] ACK received from central
+[2025-12-29T12:03:05.035378] [CENTRAL_TOWER] Received HI from DRONE_5. ACK sent.
+[2025-12-29T12:03:05.332617] [UGV_2] Heard HELLO. Sending HI...
+[2025-12-29T12:03:05.336276] [CENTRAL_TOWER] HI received from UGV_2 (queued for ACK)
+[2025-12-29T12:03:05.459122] [UGV_2] ACK received from central
+[2025-12-29T12:03:05.460911] [CENTRAL_TOWER] Received HI from UGV_2. ACK sent.
+[2025-12-29T12:03:05.615423] [DRONE_1] Heard HELLO. Sending HI...
+[2025-12-29T12:03:05.616158] [CENTRAL_TOWER] HI received from DRONE_1 (queued for ACK)
+[2025-12-29T12:03:05.616657] [DRONE_2] Heard HELLO. Sending HI...
+[2025-12-29T12:03:05.617070] [CENTRAL_TOWER] HI received from DRONE_2 (queued for ACK)
+[2025-12-29T12:03:05.692899] [DRONE_1] ACK received from central
+[2025-12-29T12:03:05.694753] [CENTRAL_TOWER] Received HI from DRONE_1. ACK sent.
+[2025-12-29T12:03:05.823259] [DRONE_7] Heard HELLO. Sending HI...
+[2025-12-29T12:03:05.823666] [CENTRAL_TOWER] HI received from DRONE_7 (queued for ACK)
+[2025-12-29T12:03:05.829614] [CENTRAL_TOWER] Mission complete signal received. Shutting down beacon.
+[2025-12-29T12:03:06.193397] [UGV_1] Heard HELLO. Sending HI...
+[2025-12-29T12:03:06.593825] [DRONE_9] Heard HELLO. Sending HI...
+[2025-12-29T12:03:06.730413] [DRONE_4] Heard HELLO. Sending HI...
+[2025-12-29T12:03:07.048276] [DRONE_0] Heard HELLO. Sending HI...
+[2025-12-29T12:03:07.165094] [DRONE_3] Heard HELLO. Sending HI...
+[2025-12-29T12:03:07.810869] [DRONE_8] Heard HELLO. Sending HI...
+[2025-12-29T12:05:16.021558] [CENTRAL_TOWER] Online. Waiting for drone fleet to deploy...
+[2025-12-29T12:05:16.530799] [DroneNet] Ready with 10 drones
+[2025-12-29T12:05:16.597268] [UGVNet] UGV Communication Channels Open.
+[2025-12-29T12:06:29.146879] [CENTRAL_TOWER] Fleet Deployed. Starting 3-Way Handshake (Period: 10s)...
+[2025-12-29T12:06:51.749581] [CENTRAL_TOWER] >>> Broadcasting: HELLO
+[2025-12-29T12:06:51.750055] [DroneNet] HELLO received from central
+[2025-12-29T12:06:51.751508] [UGVNet] HELLO received from central
+[2025-12-29T12:06:52.484538] [DRONE_5] Heard HELLO. Sending HI...
+[2025-12-29T12:06:52.484935] [CENTRAL_TOWER] HI received from DRONE_5 (queued for ACK)
+[2025-12-29T12:06:52.544008] [CENTRAL_TOWER] Received HI from DRONE_5. ACK sent.
+[2025-12-29T12:06:52.545082] [DRONE_5] Connection Established! (ACK Received)
+[2025-12-29T12:06:52.545184] [DRONE_5] ACK received from central
+[2025-12-29T12:06:52.732898] [DRONE_2] Heard HELLO. Sending HI...
+[2025-12-29T12:06:52.733619] [CENTRAL_TOWER] HI received from DRONE_2 (queued for ACK)
+[2025-12-29T12:06:52.806796] [CENTRAL_TOWER] Received HI from DRONE_2. ACK sent.
+[2025-12-29T12:06:52.808235] [DRONE_2] Connection Established! (ACK Received)
+[2025-12-29T12:06:52.808349] [DRONE_2] ACK received from central
+[2025-12-29T12:06:52.942989] [DRONE_3] Heard HELLO. Sending HI...
+[2025-12-29T12:06:52.943380] [CENTRAL_TOWER] HI received from DRONE_3 (queued for ACK)
+[2025-12-29T12:06:53.027864] [CENTRAL_TOWER] Received HI from DRONE_3. ACK sent.
+[2025-12-29T12:06:53.030535] [DRONE_3] Connection Established! (ACK Received)
+[2025-12-29T12:06:53.030700] [DRONE_3] ACK received from central
+[2025-12-29T12:06:53.042968] [DRONE_0] Heard HELLO. Sending HI...
+[2025-12-29T12:06:53.043266] [CENTRAL_TOWER] HI received from DRONE_0 (queued for ACK)
+[2025-12-29T12:06:53.235536] [DRONE_8] Heard HELLO. Sending HI...
+[2025-12-29T12:06:53.236022] [CENTRAL_TOWER] HI received from DRONE_8 (queued for ACK)
+[2025-12-29T12:06:53.309373] [CENTRAL_TOWER] Received HI from DRONE_0. ACK sent.
+[2025-12-29T12:06:53.310693] [DRONE_0] Connection Established! (ACK Received)
+[2025-12-29T12:06:53.310874] [DRONE_0] ACK received from central
+[2025-12-29T12:06:53.516207] [UGV_1] Heard HELLO. Sending HI...
+[2025-12-29T12:06:53.516660] [CENTRAL_TOWER] HI received from UGV_1 (queued for ACK)
+[2025-12-29T12:06:53.625624] [CENTRAL_TOWER] Received HI from DRONE_8. ACK sent.
+[2025-12-29T12:06:53.627223] [DRONE_8] Connection Established! (ACK Received)
+[2025-12-29T12:06:53.627332] [DRONE_8] ACK received from central
+[2025-12-29T12:06:53.919061] [CENTRAL_TOWER] Received HI from UGV_1. ACK sent.
+[2025-12-29T12:06:53.920156] [UGV_1] Connection Established. (ACK Received)
+[2025-12-29T12:06:53.920257] [UGV_1] ACK received from central
+[2025-12-29T12:06:54.043865] [DRONE_4] Heard HELLO. Sending HI...
+[2025-12-29T12:06:54.044310] [CENTRAL_TOWER] HI received from DRONE_4 (queued for ACK)
+[2025-12-29T12:06:54.119996] [CENTRAL_TOWER] Received HI from DRONE_4. ACK sent.
+[2025-12-29T12:06:54.121937] [DRONE_4] Connection Established! (ACK Received)
+[2025-12-29T12:06:54.122076] [DRONE_4] ACK received from central
+[2025-12-29T12:06:54.639365] [UGV_2] Heard HELLO. Sending HI...
+[2025-12-29T12:06:54.640072] [CENTRAL_TOWER] HI received from UGV_2 (queued for ACK)
+[2025-12-29T12:06:54.785809] [DRONE_9] Heard HELLO. Sending HI...
+[2025-12-29T12:06:54.786780] [CENTRAL_TOWER] HI received from DRONE_9 (queued for ACK)
+[2025-12-29T12:06:54.805683] [CENTRAL_TOWER] Received HI from UGV_2. ACK sent.
+[2025-12-29T12:06:54.807402] [UGV_2] Connection Established. (ACK Received)
+[2025-12-29T12:06:54.807522] [UGV_2] ACK received from central
+[2025-12-29T12:06:55.017891] [CENTRAL_TOWER] Received HI from DRONE_9. ACK sent.
+[2025-12-29T12:06:55.020066] [DRONE_9] Connection Established! (ACK Received)
+[2025-12-29T12:06:55.020209] [DRONE_9] ACK received from central
+[2025-12-29T12:06:55.449932] [DRONE_6] Heard HELLO. Sending HI...
+[2025-12-29T12:06:55.451927] [CENTRAL_TOWER] HI received from DRONE_6 (queued for ACK)
+[2025-12-29T12:06:55.468109] [DRONE_7] Heard HELLO. Sending HI...
+[2025-12-29T12:06:55.468626] [CENTRAL_TOWER] HI received from DRONE_7 (queued for ACK)
+[2025-12-29T12:06:55.555180] [CENTRAL_TOWER] Received HI from DRONE_6. ACK sent.
+[2025-12-29T12:06:55.556237] [DRONE_6] Connection Established! (ACK Received)
+[2025-12-29T12:06:55.556356] [DRONE_6] ACK received from central
+[2025-12-29T12:06:55.584624] [DRONE_1] Heard HELLO. Sending HI...
+[2025-12-29T12:06:55.585220] [CENTRAL_TOWER] HI received from DRONE_1 (queued for ACK)
+[2025-12-29T12:06:55.708209] [CENTRAL_TOWER] Received HI from DRONE_7. ACK sent.
+[2025-12-29T12:06:55.709515] [DRONE_7] Connection Established! (ACK Received)
+[2025-12-29T12:06:55.709663] [DRONE_7] ACK received from central
+[2025-12-29T12:06:55.861483] [CENTRAL_TOWER] Received HI from DRONE_1. ACK sent.
+[2025-12-29T12:06:55.863170] [DRONE_1] Connection Established! (ACK Received)
+[2025-12-29T12:06:55.863298] [DRONE_1] ACK received from central
+[2025-12-29T12:07:07.718529] [CENTRAL_TOWER] Mission complete signal received. Shutting down beacon.
+[2025-12-31T03:27:54.651489] [CENTRAL_TOWER] Online. Waiting for drone fleet to deploy...
+[2025-12-31T03:27:54.658895] [DroneNet] Ready with 10 drones
+[2025-12-31T03:27:54.672966] [UGVNet] UGV Communication Channels Open.
+[2025-12-31T03:43:41.355361] [CENTRAL_TOWER] Online. Waiting for drone fleet to deploy...
+[2025-12-31T03:43:41.622202] [DroneNet] Ready with 10 drones
+[2025-12-31T03:43:41.658475] [UGVNet] UGV Communication Channels Open.
+[2025-12-31T03:44:16.532547] [CENTRAL_TOWER] Fleet Deployed. Starting 3-Way Handshake (Period: 10s)...
+[2025-12-31T03:44:31.568727] [CENTRAL_TOWER] >>> Broadcasting: HELLO
+[2025-12-31T03:44:31.569677] [UGVNet] HELLO received from central
+[2025-12-31T03:44:31.569219] [DroneNet] HELLO received from central
+[2025-12-31T03:44:31.805807] [DRONE_8] Heard HELLO. Sending HI...
+[2025-12-31T03:44:31.810180] [CENTRAL_TOWER] HI received from DRONE_8 (queued for ACK)
+[2025-12-31T03:44:31.951329] [CENTRAL_TOWER] Received HI from DRONE_8. ACK sent.
+[2025-12-31T03:44:31.952590] [DRONE_8] Connection Established! (ACK Received)
+[2025-12-31T03:44:31.953691] [DRONE_8] ACK received from central
+[2025-12-31T03:44:32.054612] [DRONE_4] Heard HELLO. Sending HI...
+[2025-12-31T03:44:32.056008] [CENTRAL_TOWER] HI received from DRONE_4 (queued for ACK)
+[2025-12-31T03:44:32.131211] [CENTRAL_TOWER] Received HI from DRONE_4. ACK sent.
+[2025-12-31T03:44:32.131897] [DRONE_4] Connection Established! (ACK Received)
+[2025-12-31T03:44:32.131974] [DRONE_4] ACK received from central
+[2025-12-31T03:44:32.279504] [DRONE_9] Heard HELLO. Sending HI...
+[2025-12-31T03:44:32.279925] [CENTRAL_TOWER] HI received from DRONE_9 (queued for ACK)
+[2025-12-31T03:44:32.317315] [DRONE_9] Connection Established! (ACK Received)
+[2025-12-31T03:44:32.317428] [DRONE_9] ACK received from central
+[2025-12-31T03:44:32.317773] [CENTRAL_TOWER] Received HI from DRONE_9. ACK sent.
+[2025-12-31T03:44:32.512823] [UGV_1] Heard HELLO. Sending HI...
+[2025-12-31T03:44:32.513206] [CENTRAL_TOWER] HI received from UGV_1 (queued for ACK)
+[2025-12-31T03:44:32.544657] [DRONE_1] Heard HELLO. Sending HI...
+[2025-12-31T03:44:32.545445] [CENTRAL_TOWER] HI received from DRONE_1 (queued for ACK)
+[2025-12-31T03:44:32.638394] [UGV_1] Connection Established. (ACK Received)
+[2025-12-31T03:44:32.638489] [UGV_1] ACK received from central
+[2025-12-31T03:44:32.638486] [CENTRAL_TOWER] Received HI from UGV_1. ACK sent.
+[2025-12-31T03:44:32.739978] [UGV_2] Heard HELLO. Sending HI...
+[2025-12-31T03:44:32.740306] [CENTRAL_TOWER] HI received from UGV_2 (queued for ACK)
+[2025-12-31T03:44:32.851344] [DRONE_1] Connection Established! (ACK Received)
+[2025-12-31T03:44:32.851556] [DRONE_1] ACK received from central
+[2025-12-31T03:44:32.853349] [CENTRAL_TOWER] Received HI from DRONE_1. ACK sent.
+[2025-12-31T03:44:33.034706] [CENTRAL_TOWER] Received HI from UGV_2. ACK sent.
+[2025-12-31T03:44:33.036422] [UGV_2] Connection Established. (ACK Received)
+[2025-12-31T03:44:33.036594] [UGV_2] ACK received from central
+[2025-12-31T03:44:33.166354] [DRONE_3] Heard HELLO. Sending HI...
+[2025-12-31T03:44:33.166736] [CENTRAL_TOWER] HI received from DRONE_3 (queued for ACK)
+[2025-12-31T03:44:33.236018] [DRONE_3] Connection Established! (ACK Received)
+[2025-12-31T03:44:33.236148] [DRONE_3] ACK received from central
+[2025-12-31T03:44:33.237545] [CENTRAL_TOWER] Received HI from DRONE_3. ACK sent.
+[2025-12-31T03:44:33.702527] [DRONE_5] Heard HELLO. Sending HI...
+[2025-12-31T03:44:33.703094] [CENTRAL_TOWER] HI received from DRONE_5 (queued for ACK)
+[2025-12-31T03:44:33.768276] [DRONE_7] Heard HELLO. Sending HI...
+[2025-12-31T03:44:33.769782] [CENTRAL_TOWER] HI received from DRONE_7 (queued for ACK)
+[2025-12-31T03:44:33.952442] [CENTRAL_TOWER] Received HI from DRONE_5. ACK sent.
+[2025-12-31T03:44:33.953151] [DRONE_5] Connection Established! (ACK Received)
+[2025-12-31T03:44:33.953353] [DRONE_5] ACK received from central
+[2025-12-31T03:44:34.225076] [DRONE_7] Connection Established! (ACK Received)
+[2025-12-31T03:44:34.225247] [DRONE_7] ACK received from central
+[2025-12-31T03:44:34.228027] [CENTRAL_TOWER] Received HI from DRONE_7. ACK sent.
+[2025-12-31T03:44:34.443244] [DRONE_6] Heard HELLO. Sending HI...
+[2025-12-31T03:44:34.443811] [CENTRAL_TOWER] HI received from DRONE_6 (queued for ACK)
+[2025-12-31T03:44:34.573843] [DRONE_6] Connection Established! (ACK Received)
+[2025-12-31T03:44:34.574097] [DRONE_6] ACK received from central
+[2025-12-31T03:44:34.574656] [CENTRAL_TOWER] Received HI from DRONE_6. ACK sent.
+[2025-12-31T03:44:34.852368] [DRONE_2] Heard HELLO. Sending HI...
+[2025-12-31T03:44:34.852670] [CENTRAL_TOWER] HI received from DRONE_2 (queued for ACK)
+[2025-12-31T03:44:35.015227] [DRONE_2] Connection Established! (ACK Received)
+[2025-12-31T03:44:35.016411] [CENTRAL_TOWER] Received HI from DRONE_2. ACK sent.
+[2025-12-31T03:44:35.015601] [DRONE_2] ACK received from central
+[2025-12-31T03:44:35.341766] [DRONE_0] Heard HELLO. Sending HI...
+[2025-12-31T03:44:35.342118] [CENTRAL_TOWER] HI received from DRONE_0 (queued for ACK)
+[2025-12-31T03:44:35.463821] [DRONE_0] Connection Established! (ACK Received)
+[2025-12-31T03:44:35.463923] [DRONE_0] ACK received from central
+[2025-12-31T03:44:35.464370] [CENTRAL_TOWER] Received HI from DRONE_0. ACK sent.
+[2025-12-31T03:44:47.584438] [CENTRAL_TOWER] >>> Broadcasting: HELLO
+[2025-12-31T03:44:47.585012] [DroneNet] HELLO received from central
+[2025-12-31T03:44:47.585605] [UGVNet] HELLO received from central
+[2025-12-31T03:44:47.931667] [UGV_2] Heard HELLO. Sending HI...
+[2025-12-31T03:44:47.932518] [CENTRAL_TOWER] HI received from UGV_2 (queued for ACK)
+[2025-12-31T03:44:48.036483] [UGV_2] ACK received from central
+[2025-12-31T03:44:48.037995] [CENTRAL_TOWER] Received HI from UGV_2. ACK sent.
+[2025-12-31T03:44:48.276027] [DRONE_3] Heard HELLO. Sending HI...
+[2025-12-31T03:44:48.277725] [CENTRAL_TOWER] HI received from DRONE_3 (queued for ACK)
+[2025-12-31T03:44:48.319132] [DRONE_3] ACK received from central
+[2025-12-31T03:44:48.320797] [CENTRAL_TOWER] Received HI from DRONE_3. ACK sent.
+[2025-12-31T03:44:49.345246] [DRONE_9] Heard HELLO. Sending HI...
+[2025-12-31T03:44:49.345570] [CENTRAL_TOWER] HI received from DRONE_9 (queued for ACK)
+[2025-12-31T03:44:49.415838] [UGV_1] Heard HELLO. Sending HI...
+[2025-12-31T03:44:49.416246] [CENTRAL_TOWER] HI received from UGV_1 (queued for ACK)
+[2025-12-31T03:44:49.536093] [DRONE_9] ACK received from central
+[2025-12-31T03:44:49.537940] [CENTRAL_TOWER] Received HI from DRONE_9. ACK sent.
+[2025-12-31T03:44:49.711961] [DRONE_8] Heard HELLO. Sending HI...
+[2025-12-31T03:44:49.712403] [CENTRAL_TOWER] HI received from DRONE_8 (queued for ACK)
+[2025-12-31T03:44:49.762180] [UGV_1] ACK received from central
+[2025-12-31T03:44:49.766120] [DRONE_7] Heard HELLO. Sending HI...
+[2025-12-31T03:44:49.766480] [CENTRAL_TOWER] HI received from DRONE_7 (queued for ACK)
+[2025-12-31T03:44:49.768003] [CENTRAL_TOWER] Received HI from UGV_1. ACK sent.
+[2025-12-31T03:44:49.779411] [DRONE_1] Heard HELLO. Sending HI...
+[2025-12-31T03:44:49.779982] [CENTRAL_TOWER] HI received from DRONE_1 (queued for ACK)
+[2025-12-31T03:44:49.917531] [DRONE_8] ACK received from central
+[2025-12-31T03:44:49.919866] [CENTRAL_TOWER] Received HI from DRONE_8. ACK sent.
+[2025-12-31T03:44:49.999964] [DRONE_2] Heard HELLO. Sending HI...
+[2025-12-31T03:44:50.001104] [CENTRAL_TOWER] HI received from DRONE_2 (queued for ACK)
+[2025-12-31T03:44:50.125104] [DRONE_7] ACK received from central
+[2025-12-31T03:44:50.127007] [CENTRAL_TOWER] Received HI from DRONE_7. ACK sent.
+[2025-12-31T03:44:50.354581] [DRONE_1] ACK received from central
+[2025-12-31T03:44:50.357180] [CENTRAL_TOWER] Received HI from DRONE_1. ACK sent.
+[2025-12-31T03:44:50.437282] [DRONE_6] Heard HELLO. Sending HI...
+[2025-12-31T03:44:50.438757] [CENTRAL_TOWER] HI received from DRONE_6 (queued for ACK)
+[2025-12-31T03:44:50.489592] [DRONE_2] ACK received from central
+[2025-12-31T03:44:50.491020] [CENTRAL_TOWER] Received HI from DRONE_2. ACK sent.
+[2025-12-31T03:44:50.652078] [DRONE_6] ACK received from central
+[2025-12-31T03:44:50.653543] [CENTRAL_TOWER] Received HI from DRONE_6. ACK sent.
+[2025-12-31T03:44:50.734459] [DRONE_4] Heard HELLO. Sending HI...
+[2025-12-31T03:44:50.734805] [CENTRAL_TOWER] HI received from DRONE_4 (queued for ACK)
+[2025-12-31T03:44:50.878826] [DRONE_0] Heard HELLO. Sending HI...
+[2025-12-31T03:44:50.879430] [CENTRAL_TOWER] HI received from DRONE_0 (queued for ACK)
+[2025-12-31T03:44:50.882033] [DRONE_4] ACK received from central
+[2025-12-31T03:44:50.885482] [CENTRAL_TOWER] Received HI from DRONE_4. ACK sent.
+[2025-12-31T03:44:50.975838] [DRONE_5] Heard HELLO. Sending HI...
+[2025-12-31T03:44:50.976109] [CENTRAL_TOWER] HI received from DRONE_5 (queued for ACK)
+[2025-12-31T03:44:51.054594] [DRONE_0] ACK received from central
+[2025-12-31T03:44:51.057461] [CENTRAL_TOWER] Received HI from DRONE_0. ACK sent.
+[2025-12-31T03:44:51.217986] [DRONE_5] ACK received from central
+[2025-12-31T03:44:51.224122] [CENTRAL_TOWER] Received HI from DRONE_5. ACK sent.
+[2025-12-31T03:45:02.314765] [CENTRAL_TOWER] >>> Broadcasting: HELLO
+[2025-12-31T03:45:02.316718] [DroneNet] HELLO received from central
+[2025-12-31T03:45:02.319318] [UGVNet] HELLO received from central
+[2025-12-31T03:45:02.599533] [DRONE_5] Heard HELLO. Sending HI...
+[2025-12-31T03:45:02.599944] [CENTRAL_TOWER] HI received from DRONE_5 (queued for ACK)
+[2025-12-31T03:45:02.665008] [DRONE_3] Heard HELLO. Sending HI...
+[2025-12-31T03:45:02.665424] [CENTRAL_TOWER] HI received from DRONE_3 (queued for ACK)
+[2025-12-31T03:45:02.738245] [DRONE_5] ACK received from central
+[2025-12-31T03:45:02.739720] [CENTRAL_TOWER] Received HI from DRONE_5. ACK sent.
+[2025-12-31T03:45:02.854240] [CENTRAL_TOWER] Received HI from DRONE_3. ACK sent.
+[2025-12-31T03:45:02.857263] [DRONE_3] ACK received from central
+[2025-12-31T03:45:02.975404] [DRONE_1] Heard HELLO. Sending HI...
+[2025-12-31T03:45:02.977672] [CENTRAL_TOWER] HI received from DRONE_1 (queued for ACK)
+[2025-12-31T03:45:03.002383] [DRONE_1] ACK received from central
+[2025-12-31T03:45:03.003505] [CENTRAL_TOWER] Received HI from DRONE_1. ACK sent.
+[2025-12-31T03:45:03.041985] [DRONE_0] Heard HELLO. Sending HI...
+[2025-12-31T03:45:03.042419] [CENTRAL_TOWER] HI received from DRONE_0 (queued for ACK)
+[2025-12-31T03:45:03.105491] [CENTRAL_TOWER] Mission complete signal received. Shutting down beacon.
+[2025-12-31T03:45:03.409717] [UGV_1] Heard HELLO. Sending HI...
+[2025-12-31T03:45:03.415248] [DRONE_4] Heard HELLO. Sending HI...
+[2025-12-31T03:45:03.497313] [DRONE_8] Heard HELLO. Sending HI...
+[2025-12-31T03:45:03.686299] [DRONE_7] Heard HELLO. Sending HI...
+[2025-12-31T03:45:04.348943] [DRONE_2] Heard HELLO. Sending HI...
+[2025-12-31T03:45:04.375035] [UGV_2] Heard HELLO. Sending HI...
+[2025-12-31T03:45:04.557735] [DRONE_9] Heard HELLO. Sending HI...
+[2025-12-31T03:45:05.277450] [DRONE_6] Heard HELLO. Sending HI...

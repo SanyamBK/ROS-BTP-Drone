@@ -63,6 +63,9 @@ class MobileRechargingUGV:
         self.odom_pub = rospy.Publisher(f'/{self.ns}/odom', Odometry, queue_size=10)
         self.cmd_sub = rospy.Subscriber(f'/{self.ns}/cmd_vel', Twist, self.cmd_callback)
         self.charge_pub = rospy.Publisher(f'/{self.ns}/charging_active', Bool, queue_size=10)
+
+        self.mission_done = False
+        rospy.Subscriber('/mission_complete', Bool, self._mission_done_cb)
         
         # We need to know where drones are to charge them
         # In a real sim we'd use a service or collision detection.
@@ -81,7 +84,7 @@ class MobileRechargingUGV:
         self.rate = rospy.Rate(10)
         self.last_time = rospy.Time.now()
 
-        rospy.loginfo(f"{self.ugv_id}] Mobile Charging Station Initialized at ({self.x:.1f},{self.y:.1f})")
+        rospy.loginfo(f"[{self.ugv_id}] Mobile Charging Station Initialized at ({self.x:.1f},{self.y:.1f})")
         
         # Patrol State
         self.last_cmd_time = rospy.Time.now()
@@ -154,6 +157,14 @@ class MobileRechargingUGV:
         current = rospy.Time.now()
         dt = (current - self.last_time).to_sec()
         self.last_time = current
+
+        # Halt everything once mission is marked complete
+        if self.mission_done:
+            self.velocity = 0.0
+            self.omega = 0.0
+            self.publish_odom(current)
+            self.sync_gazebo_state()
+            return
         
         # Check for idle timeout (auto-patrol)
         # Startup Phase: keep at start pose for init_duration
@@ -184,20 +195,26 @@ class MobileRechargingUGV:
         self.yaw += self.omega * dt
         
         # Publish Odom
+        self.publish_odom(current)
+        # Force Gazebo to match our calculated position
+        self.sync_gazebo_state()
+
+    def publish_odom(self, stamp):
         odom = Odometry()
-        odom.header.stamp = current
+        odom.header.stamp = stamp
         odom.header.frame_id = "world"
         odom.pose.pose.position.x = self.x
         odom.pose.pose.position.y = self.y
         # Quaternion... simplified
         odom.pose.pose.orientation.z = sin(self.yaw / 2.0)
         odom.pose.pose.orientation.w = cos(self.yaw / 2.0)
-        
         self.odom_pub.publish(odom)
 
-
-        # Force Gazebo to match our calculated position
-        self.sync_gazebo_state()
+    def _mission_done_cb(self, msg: Bool):
+        if msg.data:
+            rospy.loginfo(f"[{self.ugv_id}] Mission complete received. Parking and shutting down.")
+            self.mission_done = True
+            rospy.signal_shutdown("Mission complete")
 
     def sync_gazebo_state(self):
         state = ModelState()
@@ -234,13 +251,6 @@ class MobileRechargingUGV:
             self.omega = 0.0
             self.velocity = 1.5 # MAX SPEED RESPONSE
 
-        if abs(diff_yaw) > 0.1:
-            self.omega = 0.8 * (1 if diff_yaw > 0 else -1)
-            self.velocity = 0.2
-        else:
-            self.omega = 0.0
-            self.velocity = 1.5 # MAX SPEED RESPONSE
-
     def check_charging(self):
         """Check if any drone is close enough to charge."""
         ugv_pos = Point(self.x, self.y, 0)
@@ -250,7 +260,7 @@ class MobileRechargingUGV:
             
             if dist < self.charging_radius:
                 # Drone is docking!
-                rospy.loginfo_throttle(5, f"{self.ugv_id}] Docking success! Drone {drone_id} is recharging...")
+                rospy.loginfo_throttle(5, f"[{self.ugv_id}] Docking success! Drone {drone_id} is recharging...")
                 
                 # Signal the energy planner (or any battery monitor) that charging is active
                 # We publish to a status topic that the planner can verify

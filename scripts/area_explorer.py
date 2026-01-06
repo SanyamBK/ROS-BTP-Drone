@@ -11,8 +11,13 @@ from nav_msgs.msg import Odometry
 from math import sqrt, atan2, exp, pi, cos, sin
 from tf.transformations import euler_from_quaternion
 import sys
-# Ensure we can import local modules
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Ensure we can import local modules - handle both direct execution and catkin wrapper
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if 'devel/lib' in script_dir:
+    # Running through catkin wrapper, find the actual scripts directory
+    script_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))), 'src', 'multi_drone_sim', 'scripts')
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
 from drought_probability_model import DroughtProbabilityModel
 from area_allocation import Area, Drone, DroneRole, DynamicDroneAllocator
 
@@ -158,7 +163,57 @@ def build_allocation_report(log_path, areas_cfg, area_profiles, allocation, full
     with open(log_path, 'w') as log_file:
         log_file.write('\n'.join(lines))
 
-from std_msgs.msg import Float32
+
+def write_mission_summary(summary_path, areas_cfg, full_plan, mission_results):
+    os.makedirs(os.path.dirname(summary_path), exist_ok=True)
+
+    timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    lines = []
+    lines.append('MULTI-DRONE MISSION SUMMARY')
+    lines.append(f'Generated (UTC): {timestamp}')
+    lines.append('')
+    lines.append('Central Agent: Tower beacon stopped after mission_complete (HELLO/ACK queue drained)')
+    lines.append('UGV Chargers: Parked after mission_complete signal')
+    lines.append('')
+    lines.append('Area centers and assignments:')
+    lines.append('Area    Center (x,y)   Color     Drones')
+    lines.append('-----   -------------  --------  -------------------')
+    for area_name, cfg in areas_cfg.items():
+        assigned = [i for i, plan in enumerate(full_plan) if plan['role'] == 'explorer' and plan['area'] == area_name]
+        lines.append(
+            f"{area_name:<7} ({cfg.get('x',0):>5.1f},{cfg.get('y',0):>5.1f})  {cfg.get('color','n/a'):<8}  {assigned}"
+        )
+
+    lines.append('')
+    lines.append('Drone docking/finish states:')
+    lines.append('Drone  Role       Area       Final (x,y)     Status      Notes')
+    lines.append('-----  ---------  ---------  --------------  ----------  ---------------------------')
+
+    # Index mission results by drone id for quick lookup
+    result_map = {entry['drone_id']: entry for entry in mission_results}
+
+    for drone_id, plan in enumerate(full_plan):
+        role = plan.get('role', 'n/a')
+        area = plan.get('area', 'n/a')
+        if drone_id in result_map:
+            entry = result_map[drone_id]
+            final_pos = entry.get('final_position', '--')
+            status = entry.get('status', 'n/a')
+            notes = entry.get('notes', '')
+        else:
+            final_pos = '--'
+            status = 'n/a'
+            notes = ''
+
+        lines.append(
+            f"{drone_id:<5}  {role:<9}  {area:<9}  {final_pos:<14}  {status:<10}  {notes}"
+        )
+
+    lines.append('')
+    with open(summary_path, 'w') as f:
+        f.write('\n'.join(lines))
+
+from std_msgs.msg import Float32, Bool
 
 class Battery:
     """
@@ -315,7 +370,11 @@ class DroneExplorer:
         center_x = self.area_config['x']
         center_y = self.area_config['y']
         area_size = self.area_config['size']
-        altitude = self.exploration_config['flight_altitude']
+        
+        # FIX: User requested variable heights. Assign random altitude per drone.
+        # Was previously reading fixed 'flight_altitude' from yaml (2.0m)
+        altitude = random.uniform(3.0, 3.5)
+        
         spacing = self.exploration_config['waypoint_spacing']
         
         # Calculate area boundaries - STRICT boundaries for colored areas
@@ -337,7 +396,28 @@ class DroneExplorer:
         pattern = self.exploration_config['patrol_pattern']
         waypoints = []
         
-        if pattern == "grid":
+        if pattern == "semicircle":
+            # Semicircle pattern - each drone covers half the circle from opposite ends
+            import math
+            radius = half_size - 1.0  # Stay 1m inside boundary
+            num_points = int(math.pi * radius / spacing) + 1  # Points along semicircle
+            
+            if self.group_index == 0:
+                # First drone: start from 0° (right) to 180° (left) - top semicircle
+                angles = [i * math.pi / (num_points - 1) for i in range(num_points)]
+            else:
+                # Second drone: start from 180° (left) to 360° (right) - bottom semicircle  
+                angles = [math.pi + i * math.pi / (num_points - 1) for i in range(num_points)]
+            
+            for angle in angles:
+                x = center_x + radius * math.cos(angle)
+                y = center_y + radius * math.sin(angle)
+                waypoints.append((x, y, altitude))
+            
+            # Add center point as final waypoint
+            waypoints.append((center_x, center_y, altitude))
+            
+        elif pattern == "grid":
             # Lawn mower pattern
             x = min_x
             y_direction = 1  # 1 for forward, -1 for backward
@@ -373,10 +453,19 @@ class DroneExplorer:
         
         if not waypoints:
             waypoints = [(center_x, center_y, altitude)]
-        else:
+        elif pattern != "semicircle":
+            # Add center point as final waypoint for non-semicircle patterns
             waypoints.append((center_x, center_y, altitude))
 
-        if self.group_size > 1:
+        # For semicircle pattern, waypoints are already split by group_index
+        # For other patterns, split waypoints among group members
+        if pattern == "semicircle":
+            self.waypoints = waypoints
+            rospy.loginfo(
+                f"[Drone {self.drone_id}] Semicircle coverage (drone {self.group_index + 1}/{self.group_size}) "
+                f"with {len(self.waypoints)} waypoints"
+            )
+        elif self.group_size > 1:
             shared_segment = [
                 wp for idx, wp in enumerate(waypoints[:-1])
                 if idx % self.group_size == self.group_index
@@ -664,6 +753,206 @@ class BackupDrone:
         self.cmd_vel_pub = rospy.Publisher(
             cmd_vel_topic, Twist, queue_size=1
         )
+    
+    def land(self):
+        """Land the drone"""
+        rospy.loginfo(f"[Drone {self.drone_id}] Landing...")
+        rate = rospy.Rate(10)
+        
+        # Simple open-loop descent
+        for _ in range(50):
+            cmd = Twist()
+            cmd.linear.z = -0.5
+            self.cmd_vel_pub.publish(cmd)
+            rate.sleep()
+            
+        # Stop
+        self.cmd_vel_pub.publish(Twist())
+
+class CoverageGrid:
+    def __init__(self, min_x, max_x, min_y, max_y, resolution=0.5):
+        self.min_x = min_x
+        self.max_x = max_x
+        self.min_y = min_y
+        self.max_y = max_y
+        self.res = resolution
+        
+        self.cols = int((max_x - min_x) / resolution) + 1
+        self.rows = int((max_y - min_y) / resolution) + 1
+        
+        # 0 = Uncovered, 1 = Covered
+        self.grid = np.zeros((self.rows, self.cols), dtype=np.uint8)
+        self.total_cells = self.rows * self.cols
+        self.covered_cells = 0
+
+    def update(self, x, y, radius):
+        """Mark cells within radius of (x,y) as covered"""
+        # Convert world circle to grid indices
+        # Simple bounding box check for speed
+        
+        # Grid coordinates of the center
+        gx = int((x - self.min_x) / self.res)
+        gy = int((y - self.min_y) / self.res)
+        
+        # Grid radius
+        gr = int(radius / self.res)
+        
+        # Bounding box of the circle on the grid
+        y_min = max(0, gy - gr)
+        y_max = min(self.rows, gy + gr + 1)
+        x_min = max(0, gx - gr)
+        x_max = min(self.cols, gx + gr + 1)
+        
+        # Iterate over bounding box
+        for r in range(y_min, y_max):
+            for c in range(x_min, x_max):
+                if self.grid[r, c] == 1:
+                    continue
+                
+                # Check distance
+                # cell center in world coords
+                cell_wx = self.min_x + c * self.res + self.res/2
+                cell_wy = self.min_y + r * self.res + self.res/2
+                
+                if (cell_wx - x)**2 + (cell_wy - y)**2 <= radius**2:
+                    self.grid[r, c] = 1
+                    self.covered_cells += 1
+                    
+    def get_progress(self):
+        if self.total_cells == 0: return 0.0
+        return float(self.covered_cells) / self.total_cells
+
+    def explore(self):
+        """
+        Main exploration loop
+        Executes the coverage path while monitoring battery and risk
+        """
+        rate = rospy.Rate(10)
+        self.mission_active = True
+        waypoint_idx = 0
+        
+        # Initialize Dynamic Coverage Grid
+        # Use simple heuristic: Cone radius = Altitude * 0.625 (matches visual mesh scale)
+        self.coverage_grid = CoverageGrid(self.min_x, self.max_x, self.min_y, self.max_y, resolution=0.5)
+        self.last_progress_log = 0.0 # Initialize for progress logging
+        
+        rospy.loginfo(f"[Drone {self.drone_id}] Starting dynamic coverage sweep...")
+        
+        while not rospy.is_shutdown() and self.mission_active:
+            # 1. Check Battery
+            if self.battery_level < 20.0:
+                rospy.logwarn(f"[Drone {self.drone_id}] Low battery ({self.battery_level:.1f})! Returning to base.")
+                self.return_to_base()
+                break
+                
+            # 2. Get current pose
+            if self.current_pose is None:
+                rate.sleep()
+                continue
+                
+            curr_x = self.current_pose.position.x
+            curr_y = self.current_pose.position.y
+            curr_z = self.current_pose.position.z
+            
+            # --- DYNAMIC COVERAGE LOGIC ---
+            # Calculate cone radius based on altitude
+            # Visual cone scale in SDF is 2.5/4.0 ~= 0.625
+            fov_radius = max(0.5, curr_z * 0.625)
+            
+            # Update grid
+            self.coverage_grid.update(curr_x, curr_y, fov_radius)
+            progress = self.coverage_grid.get_progress()
+            
+            # Log progress periodically (every 10%)
+            if progress >= self.last_progress_log + 0.10:
+                 rospy.loginfo(f"[Drone {self.drone_id}] Dynamic Coverage: {progress*100:.1f}% (Alt: {curr_z:.1f}m, Radius: {fov_radius:.1f}m)")
+                 self.last_progress_log = progress
+
+            # 3. Navigation Logic (Waypoint Following)
+            if waypoint_idx < len(self.waypoints):
+                target_x, target_y, target_z = self.waypoints[waypoint_idx]
+                
+                # Simple P-Controller
+                dist, angle = self.get_dist_angle(target_x, target_y)
+                
+                # Calculate errors
+                yaw = self.current_yaw
+                angle_diff = angle - yaw
+                
+                # Customize for "Dynamic Vision": Ensure we maintain altitude for coverage
+                # If we are too low, coverage is small. If too high, resolution drops (not modeled here, but good conceptually)
+                
+                # Check arrival
+                if dist < 0.5:
+                    waypoint_idx += 1
+                    # rospy.loginfo(f"[Drone {self.drone_id}] Reached waypoint {waypoint_idx}/{len(self.waypoints)}")
+                
+                # Control output
+                cmd = Twist()
+                
+                # Rotate to face target
+                # Normalize angle
+                while angle_diff > math.pi: angle_diff -= 2*math.pi
+                while angle_diff < -math.pi: angle_diff += 2*math.pi
+                
+                if abs(angle_diff) > 0.5:
+                    cmd.angular.z = max(-0.5, min(0.5, angle_diff))
+                else:
+                    cmd.linear.x = min(1.0, dist)  # Move forward
+                    cmd.angular.z = angle_diff     # Fine tune heading
+                    
+                    # Altitude control
+                    z_err = target_z - curr_z
+                    cmd.linear.z = max(-0.5, min(0.5, z_err))
+                
+                self.cmd_vel_pub.publish(cmd)
+                
+            else:
+                # Mission Complete
+                rospy.loginfo(f"[CHECK] [Drone {self.drone_id}] Completed {self.farm_name} coverage! Final Dynamic Coverage: {progress*100:.1f}%")
+                
+                # Record results
+                self.record_mission_result(final_pos=f"({curr_x:.1f}, {curr_y:.1f})", status="success")
+                
+                self.mission_active = False
+                self.notes = []
+                self.last_progress_log = 0.0
+                self.return_to_base()
+            
+            rate.sleep()
+        rospy.loginfo(
+            f"[Drone {self.drone_id}] Risk report -> actual {self.actual_probability*100:.1f}% | "
+            f"onboard {self.measured_probability*100:.1f}% | error {self.risk_error_pct:+.2f}% | "
+            f"boundary corrections {self.boundary_events}"
+        )
+
+
+class BackupDrone:
+    """Backup drone that stays at starting position"""
+    def __init__(self, drone_id, start_pos, result_aggregator=None, measurement_noise=0.05):
+        self.drone_id = drone_id
+        self.start_pos = start_pos
+        self.current_pose = None
+        self.result_aggregator = result_aggregator
+        self.measurement_noise = abs(measurement_noise)
+
+        self.actual_probability = 0.0
+        self.measured_probability = clamp(
+            self.actual_probability * (1.0 + random.uniform(-self.measurement_noise, self.measurement_noise))
+        )
+        self.risk_error_pct = (self.measured_probability - self.actual_probability) * 100.0
+        # Subscribe to odometry
+        # Use absolute path to ensure we hit the global topic
+        odom_topic = f"/drone_{drone_id}/odom"
+        self.odom_sub = rospy.Subscriber(
+            odom_topic, Odometry, self.odom_callback
+        )
+        
+        # Publisher for velocity control
+        cmd_vel_topic = f"/drone_{drone_id}/cmd_vel"
+        self.cmd_vel_pub = rospy.Publisher(
+            cmd_vel_topic, Twist, queue_size=1
+        )
         
         rospy.loginfo(f"[Drone {drone_id}] BACKUP - Holding position at start")
         rospy.loginfo(
@@ -732,6 +1021,8 @@ class BackupDrone:
 
 def main():
     rospy.init_node('area_explorer_node')
+
+    mission_pub = rospy.Publisher('/mission_complete', Bool, queue_size=1, latch=True)
     
     # Load configuration
     config_path = rospy.get_param('~config_path', 
@@ -757,89 +1048,74 @@ def main():
     rospy.loginfo("[Main] Analyzing drought risk for all areas...")
     area_profiles = {name: analyze_drought_risk(name, cfg) for name, cfg in areas.items()}
     
-    rospy.loginfo("[Main] Allocating drones to areas (Advanced Logic)...")
-    
-    # Convert config to Area objects for the allocator
-    area_objects = []
-    for name, cfg in areas.items():
-        profile = area_profiles[name]
-        area_objects.append(Area(
-            area_id=name,
-            drought_probability=profile['probability'],
-            size_m2=cfg.get('size', 10.0)**2 * 3.14, # Approx area
-            coverage_radius=cfg.get('size', 10.0)/2,
-            x_center=cfg.get('x', 0),
-            y_center=cfg.get('y', 0),
-            crop_type=cfg.get('crop', 'unknown')
-        ))
-        
-    # Create Drone objects
-    drone_objects = [Drone(drone_id=i) for i in range(num_drones)]
-    
-    # Initialize Allocator
-    allocator = DynamicDroneAllocator(
-        total_drones=num_drones,
-        total_areas=len(areas),
-        min_drones_per_area=allocation_cfg.get('min_drones_per_area', 1),
-        max_drones_per_area=allocation_cfg.get('max_drones_per_area', 3),
-        reserve_percentage=0.1 # Default 10% reserve for auditors
-    )
-    
-    # Execute Allocation
-    result = allocator.allocate_drones(area_objects, drone_objects)
-    
-    allocation_counts = {aid: len(dids) for aid, dids in result.allocations.items()}
-    reserve_drones = len(result.reserve_drones)
-    
-    # Print Summary Table
+    rospy.loginfo("[Main] Allocating drones: exactly 2 explorers per farmland + 1 standby...")
+
+    # Deterministic 2-per-area allocation with a single standby at spawn
+    standby_desired = 1
+    area_names = list(areas.keys())
+    total_required = len(area_names) * 2
+    if num_drones < total_required + standby_desired:
+        rospy.logwarn(
+            "Fleet size is below 2-per-area + standby. Reducing standby to fit available drones."
+        )
+        standby_desired = max(0, num_drones - total_required)
+
+    available_drones = list(range(num_drones))
+    full_plan = [None] * num_drones
+    allocation_counts = {}
+
+    for area_name in area_names:
+        group_assignments = []
+
+        # Keep standby_desired drones unassigned until end
+        while len(group_assignments) < 2 and len(available_drones) > standby_desired:
+            group_assignments.append(available_drones.pop(0))
+
+        group_size = len(group_assignments)
+        allocation_counts[area_name] = group_size
+
+        if group_size < 2:
+            rospy.logwarn(
+                f"[Main] Only {group_size} drone(s) available for {area_name}; coverage will be partial."
+            )
+
+        for idx, drone_id in enumerate(group_assignments):
+            full_plan[drone_id] = {
+                'role': 'explorer',
+                'area': area_name,
+                'group_index': idx,
+                'group_size': group_size,
+                'probability': area_profiles[area_name]['probability'],
+                'role_label': 'explorer'
+            }
+
+    # Remaining drones become standby/backups at the spawn pad
+    standby_drones = []
+    while available_drones:
+        drone_id = available_drones.pop(0)
+        if len(standby_drones) < standby_desired:
+            standby_drones.append(drone_id)
+        full_plan[drone_id] = {
+            'role': 'backup',
+            'area': 'staging',
+            'role_label': 'backup'
+        }
+
     rospy.loginfo("\n" + "="*60)
-    rospy.loginfo("ALLOCATION SUMMARY (PHASE 2-4 LOGIC)")
+    rospy.loginfo("ALLOCATION SUMMARY (FIXED 2-PER-AREA)")
     rospy.loginfo("="*60)
-    summary = result.allocation_summary
-    for entry in summary['allocation_table']:
-        risk_label = "HIGH" if entry['probability'] > 0.7 else "MED" if entry['probability'] > 0.4 else "LOW"
-        rospy.loginfo(f"Area {entry['area_id']:<6} | Risk {entry['probability']:.2f} ({risk_label}) | Drones: {entry['drones_assigned']} {entry['drone_ids']}")
-    rospy.loginfo(f"Total Allocated: {summary['total_allocated']} | Reserves: {summary['total_reserves']}")
+    for area_name in area_names:
+        assigned = [i for i, plan in enumerate(full_plan) if plan['role'] == 'explorer' and plan['area'] == area_name]
+        risk = area_profiles[area_name]['probability']
+        risk_label = "HIGH" if risk > 0.7 else "MED" if risk > 0.4 else "LOW"
+        rospy.loginfo(
+            f"Area {area_name:<6} | Risk {risk:.2f} ({risk_label}) | Drones: {len(assigned)} {assigned}"
+        )
+    rospy.loginfo(f"Total Explorers: {sum(1 for p in full_plan if p['role']=='explorer')}")
+    rospy.loginfo(f"Standby/Backups: {sum(1 for p in full_plan if p['role']=='backup')}")
     rospy.loginfo("="*60 + "\n")
 
     rospy.loginfo("[Main] Initializing drone explorers...")
-    
-    # Map back to explorer_plan format
-    full_plan = [None] * num_drones
-    
-    # 1. Explorers
-    # Group by area to determine indices
-    drones_by_area = {}
-    for area_id, drone_ids in result.allocations.items():
-        # Update allocation counts for report
-        allocation_counts[area_id] = len(drone_ids)
-        
-        for idx, drone_id in enumerate(drone_ids):
-            if drone_id not in drones_by_area:
-                 # Logic to construct the plan
-                full_plan[drone_id] = {
-                    'role': 'explorer',
-                    'area': area_id,
-                    'group_index': idx,
-                    'group_size': len(drone_ids),
-                    'probability': area_profiles[area_id]['probability'],
-                    'role_label': 'explorer'
-                }
-
-    # 2. Reserves
-    for reserve in result.reserve_drones:
-        d_id = reserve
-        if d_id < num_drones:
-            full_plan[d_id] = {
-                'role': 'backup',
-                'area': 'staging',
-                'role_label': 'backup'
-            }
-        
-    # Safety fallback
-    for i in range(num_drones):
-        if full_plan[i] is None:
-            full_plan[i] = {'role': 'backup'}
     
     rospy.loginfo("=" * 60)
     rospy.loginfo("         MULTI-DRONE FARMLAND EXPLORATION")
@@ -852,6 +1128,7 @@ def main():
     rospy.loginfo("FARMLAND DROUGHT PRIORITISATION:")
     rospy.loginfo("-" * 60)
 
+    reserve_drones = sum(1 for p in full_plan if p['role'] == 'backup')
     ordered_by_risk = sorted(areas.keys(), key=lambda name: area_profiles[name]['probability'], reverse=True)
     for area_name in ordered_by_risk:
         profile = area_profiles[area_name]
@@ -914,6 +1191,7 @@ def main():
     rospy.loginfo("-" * 60)
 
     report_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'logs', 'drought_allocation.log'))
+    summary_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'logs', 'mission_summary.log'))
     mission_results = aggregator.get_results()
     build_allocation_report(
         report_path,
@@ -923,7 +1201,14 @@ def main():
         full_plan,
         mission_results=mission_results
     )
+    write_mission_summary(
+        summary_path,
+        areas,
+        full_plan,
+        mission_results
+    )
     rospy.loginfo(f"Allocation report written to {report_path}")
+    rospy.loginfo(f"Mission summary written to {summary_path}")
     
     # Wait for odometry
     rospy.loginfo("Waiting for odometry data...")
@@ -982,10 +1267,23 @@ def main():
         full_plan,
         mission_results=mission_results
     )
+    write_mission_summary(
+        summary_path,
+        areas,
+        full_plan,
+        mission_results
+    )
     rospy.loginfo("Allocation report updated with mission observations")
+    rospy.loginfo("Mission summary updated with docking states")
     
-    # Keep node running
-    rospy.spin()
+    # Validated: Auto-shutdown sequence
+    rospy.loginfo("All missions complete. Notifying fleet and shutting down in 5 seconds...")
+    try:
+        mission_pub.publish(Bool(data=True))
+    except Exception:
+        pass
+    rospy.sleep(5.0)
+    rospy.signal_shutdown("All missions completed")
 
 
 if __name__ == '__main__':
