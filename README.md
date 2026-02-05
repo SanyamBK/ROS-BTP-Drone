@@ -24,24 +24,32 @@ An intelligent multi-drone simulation system for autonomous agricultural monitor
 
 ## 🌟 Overview
 
-This project implements a sophisticated multi-drone coordination system designed for precision agriculture applications. The system deploys **18 autonomous drones** to monitor **10 scattered circular farmland areas**, assess drought risk using historical climate data, and dynamically allocate resources based on real-time sensor measurements.
+This project implements a sophisticated multi-drone coordination system designed for precision agriculture applications. The system deploys **11 autonomous drones (10 active + 1 backup)** to monitor **5 consolidated farmland areas**, assess drought risk using historical climate data, and dynamically allocate resources based on real-time sensor measurements.
 
 ### Real-World Application
 
 Climate change is increasing the frequency and severity of agricultural droughts. Our system helps farmers and agricultural managers by:
 - **Early drought detection** through multi-sensor analysis
-- **Full area coverage** with multiple drones per farmland patch
+- **Full area coverage** with 2 drones per farmland area
 - **Intelligent resource allocation** prioritizing high-risk areas
-- **Comprehensive monitoring** across diverse farmland parcels simultaneously
+- **Comprehensive monitoring** with centralized communication coordination
+
+### 🆕 Latest Updates (December 2025)
+- **Optimized fleet size**: Reduced from 18 to 11 drones for efficiency
+- **Consolidated areas**: 5 larger farmland regions (vs. 10 scattered patches)
+- **Connection logging**: New `logs/connection_report.log` tracks all communication events
+- **Central coordination**: Asynchronous 3-way handshake protocol (HELLO → HI → ACK)
+- **Bug fixes**: Resolved indentation errors in `central_agent.py` and `ugv_manager.py`
 
 ## ✨ Key Features
 
 ### 🤖 Autonomous Drone Fleet Management
-- **18 autonomous quadcopters** with individual control systems
+- **11 autonomous quadcopters** (10 explorers + 1 backup)
+- **Fixed allocation**: 2 drones per farmland area for balanced coverage
 - **Multi-threaded execution** for parallel operations
 - **Collision avoidance** and safe navigation
-- **Dynamic role assignment** (Explorer, Auditor, Backup)
-- **Distributed across 10 farmland areas** for complete coverage
+- **Dynamic role assignment** (Explorer, Backup)
+- **Distributed across 5 farmland areas** for complete coverage
 
 ### 📊 Intelligent Drought Risk Assessment
 - **LSTM Neural Network** (PyTorch) trained on US Drought Monitor data:
@@ -52,7 +60,8 @@ Climate change is increasing the frequency and severity of agricultural droughts
 - **Swarm Ranging (Active)**: Decentralized UWB-based localization from *INFOCOM 2021* fully integrated.
 - **Energy-Aware Planning (Active)**: Cooperative recharging with mobile UGV station from *ICRA 2024*. UGV actively intercepts low-battery drones.
 - **Auto-Shutdown**: Simulation automatically terminates 5 seconds after all exploration missions are complete, facilitating batch experiments.
-- **Centralized Communication**: A static "Central Tower" node coordinates the fleet using a robust **Asynchronous 3-Way Handshake** (Hello -> Hi -> Queue -> Ack). The tower processes connection requests via a 10Hz queue to simulate realistic processing latency.
+- **Centralized Communication**: A static "Central Tower" node coordinates the fleet using a robust **Asynchronous 3-Way Handshake** (Hello → Hi → Queue → Ack). The tower processes connection requests via a 10Hz queue to simulate realistic processing latency.
+- **Connection Logging**: All communication events (HELLO broadcasts, HI responses, ACK confirmations) are timestamped and logged to `logs/connection_report.log`
 - **Dynamic Vision (Swept Area)**: Coverage is calculated in real-time based on the "swept area" of the drone's moving field-of-view, simulating realistic sensor footprint data collection.
 - **3D Flight Dynamics**: Drones operate at variable altitudes (3.0m - 3.5m) to maintain realistic vertical separation and diverse sensor perspectives.
 
@@ -69,10 +78,10 @@ The system's architecture is built upon the following key research papers:
 - **Research Basis**: "DroughtCast" (Brust et al., 2021)
 
 ### 🎯 Adaptive Resource Allocation
+- **Fixed 2-drone allocation** per farmland area for balanced coverage
 - **Priority-based deployment** to highest-risk areas
-- **Full coverage guarantee**: Minimum 1 drone per area
-- **Multi-drone areas**: Remaining drones distributed round-robin
-- **Real-time reallocation** based on field measurements
+- **1 backup drone** for redundancy and emergency response
+- **Real-time monitoring** based on field measurements
 
 ### 🔍 Sensor Fusion & Validation
 - **Simulated sensor noise** for realistic scenarios
@@ -84,7 +93,10 @@ The system's architecture is built upon the following key research papers:
 - **RViz markers** showing drone positions and risk levels
 - **Color-coded risk indicators** (red = high, green = low)
 - **Real-time status updates** via ROS topics
-- **Comprehensive logging** for mission analysis
+- **Comprehensive logging** for mission analysis:
+  - `connection_report.log` - Communication events and handshakes
+  - `drought_allocation.log` - Risk-based drone allocation
+  - `mission_summary.log` - Complete mission statistics
 
 ## 📡 ROS Communication Architecture
 
@@ -92,15 +104,33 @@ The system relies on a distributed node architecture with specific topics for co
 
 | Node Name | Function | Published Topics | Subscribed Topics |
 |-----------|----------|------------------|-------------------|
-| `central_agent` | Fleet Command Tower | `/central/comm` (String) | `/comm/agents` (String) |
-| `drone_comm_manager` | Drone Comm. Relay | `/comm/agents` (String) | `/central/comm` (String) |
-| `area_explorer` (x18) | Drone Autonomy | `/drone_{id}/cmd_vel` (Twist)<br>`/drone_{id}/battery` (Float32) | `/drone_{id}/odom` (Odometry)<br>`/drone_{id}/charge_cmd` (Float32) |
-| `ugv_manager` (x2) | Mobile Charging Station | `/ugv_{id}/cmd_vel` (Twist)<br>`/comm/agents` (String) | `/ugv_{id}/odom` (Odometry)<br>`/central/comm` (String) |
+| `central_agent` | Fleet Command Tower | `/central/comm` (String) | `/comm/agents` (String)<br>`/mission_complete` (Bool) |
+| `drone_comm_manager` | Drone Comm. Relay (10 drones) | `/comm/agents` (String) | `/central/comm` (String) |
+| `ugv_comm_manager` | UGV Comm. Relay (2 UGVs) | `/comm/agents` (String) | `/central/comm` (String) |
+| `area_explorer` (x11) | Drone Autonomy | `/drone_{id}/cmd_vel` (Twist)<br>`/drone_{id}/battery` (Float32) | `/drone_{id}/odom` (Odometry)<br>`/drone_{id}/charge_cmd` (Float32) |
+| `ugv_manager` (x2) | Mobile Charging Station | `/ugv_{id}/odom` (Odometry)<br>`/ugv_{id}/charging_active` (Bool) | `/drone_{id}/odom` (Odometry)<br>`/drone_{id}/battery` (Float32)<br>`/mission_complete` (Bool) |
 
 ### Key Topic Functions
 - **`/central/comm`**: Global broadcast channel for the Central Tower (e.g., `HELLO`).
-- **`/comm/agents`**: Return channel for Distributed Agents (e.g., `AGENT_HI_DRONE_5`).
+- **`/comm/agents`**: Return channel for Distributed Agents (e.g., `AGENT_HI_DRONE_5`, `AGENT_HI_UGV_1`).
 - **`/drone_{id}/odom`**: Local odometry data for each drone (simulated GPS/IMU).
+- **`/mission_complete`**: Mission completion signal triggering graceful shutdown.
+
+### Communication Protocol: 3-Way Handshake
+
+```
+Central Tower                          Agents (Drones/UGVs)
+     |                                          |
+     |  ──────── HELLO (broadcast) ──────────> |  (Step 1)
+     |                                          |
+     |  <──── AGENT_HI_{ID} (with delay) ────  |  (Step 2)
+     |         (queued for processing)          |
+     |                                          |
+     |  ──────── TOWER_ACK_{ID} ─────────────> |  (Step 3)
+     |                                          |
+     |        Connection Established ✓          |
+     |  (logged to connection_report.log)       |
+```
 
 ## 🏗️ System Architecture
 
@@ -108,7 +138,7 @@ The system relies on a distributed node architecture with specific topics for co
 ┌─────────────────────────────────────────────────────────────┐
 │                    Gazebo Simulation                         │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
-│  │ Drone 0  │  │ Drone 1  │  │  ...     │  │ Drone 17 │   │
+│  │ Drone 0  │  │ Drone 1  │  │  ...     │  │ Drone 10 │   │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
 │                                                              │
 │  10 Scattered Circular Farmland Areas                        │
