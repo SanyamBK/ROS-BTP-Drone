@@ -85,7 +85,7 @@
   <!-- 3. Centralized Communication Architecture -->
   <node name="central_agent" pkg="multi_drone_sim" type="central_agent.py" output="screen" />
   <node name="drone_comms" pkg="multi_drone_sim" type="drone_comm.py" output="screen">
-    <param name="num_drones" value="10"/>
+    <param name="num_drones" value="11"/>
   </node>
   <node name="ugv_comms" pkg="multi_drone_sim" type="ugv_comm.py" output="screen" />
 

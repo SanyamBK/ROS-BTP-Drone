@@ -141,8 +141,8 @@ Central Tower                          Agents (Drones/UGVs)
 │  │ Drone 0  │  │ Drone 1  │  │  ...     │  │ Drone 10 │   │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
 │                                                              │
-│  10 Scattered Circular Farmland Areas                        │
-│  ├─ Area 1-10 (varying radii, realistic scatter)           │
+│  5 Consolidated Circular Farmland Areas                      │
+│  ├─ Area 1-5 (larger, consolidated regions)                │
 │  └─ Some overlapping regions for collaborative coverage    │
 └─────────────────────────────────────────────────────────────┘
                             │
@@ -183,11 +183,11 @@ Our allocation algorithm ensures complete coverage with dynamic distribution:
 - **Risk prioritization**: Higher-risk areas get first picks
 - **Real-world layout**: Scattered positioning (not grid-based)
 
-**Example Allocation for 18 Drones / 10 Areas:**
+**Example Allocation for 11 Drones / 5 Areas:**
 ```
-Areas 1-10: 1 drone each (10 drones)
-Areas 1-10: Round-robin distribution of 8 remaining drones
-Result: 1-3 drones per area depending on risk assessment
+Areas 1-5: 2 drones each (10 drones)
+Reserve: 1 backup drone
+Result: 2 drones per area + 1 backup
 ```
 
 ### 3. **Active UGV Charging System**
@@ -215,7 +215,7 @@ Each drone features:
 ### 5. **Comprehensive Mission Logging**
 Detailed logs capture:
 - Pre-mission risk assessments
-- Drone allocation decisions (18 drones across 10 areas)
+- Drone allocation decisions (11 drones across 5 areas)
 - Real-time sensor measurements
 - Fault detection events
 - Corrected risk estimates
@@ -334,8 +334,8 @@ roslaunch multi_drone_sim explore_areas.launch
 
 #### View in Gazebo
 The Gazebo window shows:
-- 18 quadcopter drones (spawn position at y=-20)
-- 10 scattered circular farmland areas
+- 11 quadcopter drones (spawn position at y=-20)
+- 5 consolidated circular farmland areas
 - Real-time drone movements and area coverage
 
 - Overlapping regions for collaborative monitoring
@@ -405,7 +405,7 @@ allocation:
 
 Total configuration: `config/areas.yaml`
 ```yaml
-num_drones: 18              # Total drone fleet size
+num_drones: 11              # Total drone fleet size
 
 start_position:
   x: 0.0
@@ -472,13 +472,13 @@ wᵢ = 1 / σ²ᵢ                    # Weight inversely proportional to varianc
 ## 📊 System Specifications
 
 ### Fleet Composition
-- **Total Drones**: 18 autonomous quadcopters
-- **Allocation Strategy**: Min 1, Max 3 per area
-- **Coverage**: 10 scattered circular farmland areas
+- **Total Drones**: 11 autonomous quadcopters
+- **Allocation Strategy**: Fixed 2 per area + 1 backup
+- **Coverage**: 5 consolidated circular farmland areas
 - **Spawn Position**: (0, -20, 2) - away from active zones
 
 ### Farmland Layout
-- **Area Count**: 10 circular patches
+- **Area Count**: 5 circular patches
 - **Layout**: Scattered, realistic distribution
 - **Radii**: Mix of 5-6 unit radii for varied area sizes
 - **Overlap**: Strategic overlapping in select regions
@@ -486,7 +486,7 @@ wᵢ = 1 / σ²ᵢ                    # Weight inversely proportional to varianc
 ### Performance Metrics
 - **Mission Success Rate**: 100% (all drones reach assigned areas)
 - **Position Accuracy**: ±0.2m (within area boundaries)
-- **Execution Time**: ~60 seconds for full 18-drone deployment
+- **Execution Time**: ~40 seconds for full 11-drone deployment
 - **Coverage Time**: ~120-180 seconds per area exploration
 
 ## 🎯 Use Cases
@@ -527,12 +527,12 @@ source ~/catkin_ws/devel/setup.bash
 ```
 multi_drone_sim/
 ├── config/
-│   └── areas.yaml                    # 10 area definitions, 18 drone config
+│   └── areas.yaml                    # 5 area definitions, 11 drone config
 ├── include/
 │   └── multi_drone_sim/              # C++ headers (if needed)
 ├── launch/
 │   ├── multi_drone_sim.launch        # Main simulation launcher
-│   ├── spawn_drones.launch           # 18 drone spawning
+│   ├── spawn_drones.launch           # 11 drone spawning
 │   └── explore_areas.launch          # Exploration mission
 ├── logs/
 │   └── drought_allocation.log        # Mission reports
