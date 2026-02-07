@@ -8,8 +8,16 @@ import random
 from datetime import datetime
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+from visualization_msgs.msg import Marker
+import math
 from math import sqrt, atan2, exp, pi, cos, sin
-from tf.transformations import euler_from_quaternion
+import math
+from math import sqrt, atan2, exp, pi, cos, sin
+import tf.transformations as tf_trans
+from visualization_msgs.msg import Marker
+
+# New Hybrid Algo
+from algo3_sim import GridWaypointManager, Algo3Hybrid
 import sys
 # Ensure we can import local modules - handle both direct execution and catkin wrapper
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -20,6 +28,7 @@ if script_dir not in sys.path:
     sys.path.insert(0, script_dir)
 from drought_probability_model import DroughtProbabilityModel
 from area_allocation import Area, Drone, DroneRole, DynamicDroneAllocator
+
 
 
 def clamp(value, minimum=0.0, maximum=1.0):
@@ -258,8 +267,114 @@ class Battery:
         self.current_charge = (percentage_target / 100.0) * self.capacity_mah
 
 
+
+class AreaCoverageController:
+    """
+    Manages the Algo 3 Simulation for a single farmland area.
+    Acts as a bridge between ROS (DroneExplorer) and the Algo Library.
+    """
+    def __init__(self, area_name, area_config, drone_explorers):
+        self.area_name = area_name
+        self.area_config = area_config
+        # Sort Drones by X-coordinate (Left -> Right)
+        # This ensures Drone 0 gets the Left Partition and Drone 1 gets the Right Partition,
+        # minimizing cross-over flight paths.
+        drone_explorers.sort(key=lambda d: d.current_pose.position.x if d.current_pose else d.start_pos[0])
+        self.drone_explorers = drone_explorers
+
+        
+        # Setup Grid
+        # Area size is length of side (square)
+        self.side_length = area_config['size']
+        self.center_x = area_config['x']
+        self.center_y = area_config['y']
+        
+        # Calculate origin (bottom-left) for coordinate transform
+        self.origin_x = self.center_x - (self.side_length / 2.0)
+        self.origin_y = self.center_y - (self.side_length / 2.0)
+        
+        # Initialize Grid Manager & Hybrid Logic
+        self.grid_manager = GridWaypointManager(
+            side_length=self.side_length,
+            coverage_radius=1.5,
+            origin_x=self.origin_x,
+            origin_y=self.origin_y
+        )
+        self.algo = Algo3Hybrid(self.grid_manager, num_drones=len(self.drone_explorers))
+        
+        # Map Local Index -> Global ID
+        self.local_to_global = {}
+        for i, explorer in enumerate(self.drone_explorers):
+            # explorer is NotificationDrone or similar
+            self.local_to_global[i] = getattr(explorer, 'drone_id', f"Unknown-{i}")
+
+        self.last_step_time = rospy.Time.now()
+        
+        # NOTE: Drones fly directly to the nearest unvisited waypoint in their partition
+        # No explicit "APPROACH" state is needed as GOMWC handles distance naturally.
+
+
+    def step(self):
+        """
+        Execute one step of the algorithm logic.
+        Drones sync position, Algo determines target, Drones execute.
+        """
+        # 1. Update Positions & Algo State
+        for i, explorer in enumerate(self.drone_explorers):
+            if explorer.current_pose:
+                local_x = explorer.current_pose.position.x - self.origin_x
+                local_y = explorer.current_pose.position.y - self.origin_y
+                
+                # Update Algo with position (Checks for visited waypoints internally)
+                self.algo.update_drone_pose(i, local_x, local_y)
+
+        # 2. Decision Making
+        msg = self.algo.step()
+        
+        # 3. Execute Commands
+        finished_drones = 0
+        
+        for i, explorer in enumerate(self.drone_explorers):
+            target = self.algo.get_target_coords(i)
+            
+            if target:
+                tx, ty = target
+                # Transform to global
+                global_tx = tx + self.origin_x
+                global_ty = ty + self.origin_y
+                explorer.update_control(global_tx, global_ty)
+            else:
+                 # No target assigned (Finished or Idle)
+                 finished_drones += 1
+                 if explorer.current_pose:
+                     explorer.update_control(explorer.current_pose.position.x, explorer.current_pose.position.y)
+
+        # 4. Stats Logging
+        v, t, pct = self.grid_manager.get_progress_stats()
+        drone_stats = self.grid_manager.get_drone_stats()
+        
+        # Format drone stats string: "Drone 5: 12, Drone 6: 15"
+        # drone_stats keys are Local IDs (0, 1...)
+        parts = []
+        for local_id, cnt in drone_stats.items():
+            global_id = self.local_to_global.get(local_id, f"?{local_id}")
+            parts.append(f"Drone {global_id}: {cnt}pts")
+            
+        d_stats_str = ", ".join(parts)
+        
+        rospy.loginfo_throttle(5, f"[{self.area_name}] Area Coverage: {pct:.1f}% ({v}/{t}) | {d_stats_str}")
+
+    def is_complete(self):
+        v, t, pct = self.grid_manager.get_progress_stats()
+        return pct >= 99.9
+
+    def get_progress(self):
+        v, t, pct = self.grid_manager.get_progress_stats()
+        return pct
+
+
 class DroneExplorer:
-    """Explorer drone that patrols a specific area"""
+    """Explorer drone that patrols a specific area (ROS Interface)"""
 
     def __init__(self, drone_id, area_name, area_config, exploration_config, start_pos,
                  result_aggregator, measurement_noise=0.1, boundary_soft_margin=0.3,
@@ -270,9 +385,10 @@ class DroneExplorer:
         self.exploration_config = exploration_config
         self.start_pos = start_pos
         self.current_pose = None
-        self.waypoints = []
-        self.current_waypoint_idx = 0
+        
+        # Algo 3 - No static waypoints
         self.exploration_complete = False
+        
         self.group_index = group_index
         self.group_size = max(1, group_size)
         self.result_aggregator = result_aggregator
@@ -298,56 +414,41 @@ class DroneExplorer:
         self.battery_pub = rospy.Publisher(f'/drone_{drone_id}/battery', Float32, queue_size=10)
         self.odom_sub = rospy.Subscriber(f'/drone_{drone_id}/odom', Odometry, self.odom_callback)
         self.charge_sub = rospy.Subscriber(f'/drone_{drone_id}/charge_cmd', Float32, self.charge_callback)
-
-        # Generate waypoints for area exploration
-        self.generate_exploration_waypoints()
+        self.marker_pub = rospy.Publisher(f'/drone_{drone_id}/cone_marker', Marker, queue_size=1)
+        
+        # Assign altitude (1.5m - 2.0m as requested)
+        self.flight_altitude = 2.0
 
         risk_pct = self.actual_probability * 100.0
-        roster_note = (
-            f"segment {self.group_index + 1}/{self.group_size}"
-            if self.group_size > 1 else "solo coverage"
-        )
         rospy.loginfo(
             f"[Drone {drone_id}] EXPLORER assigned to {self.farm_name} ({area_name}) | "
-            f"risk {risk_pct:.1f}% | {roster_note} | {len(self.waypoints)} waypoints"
+            f"Risk {risk_pct:.1f}% | Algo 3 Controlled"
         )
-        rospy.loginfo(
-            f"[Drone {drone_id}] Risk estimate -> model {self.actual_probability*100:.1f}% | "
-            f"onboard {self.measured_probability*100:.1f}% (error {self.risk_error_pct:+.2f}%)"
-        )
-        self.notes.append(f"Onboard risk error {self.risk_error_pct:+.2f}% against model")
-    
+
     def charge_callback(self, msg):
-        """Handle charge commands from UGV/Planner"""
         rospy.loginfo(f"[Drone {self.drone_id}] Receiving Charge: {msg.data}%")
         self.battery.recharge(msg.data)
 
     def odom_callback(self, msg):
-        """Update current position from odometry"""
         self.current_pose = msg.pose.pose
 
     def stop_motion(self):
-        """Command zero velocity to halt the drone."""
+        # Land and disarm (simulated by zero vel)
+        # Send simple land command (negative z)
         cmd = Twist()
-        self.cmd_vel_pub.publish(cmd)
+        cmd.linear.z = -0.5 # Descend
+        for _ in range(10): # Send multiple times to ensure receipt
+            self.cmd_vel_pub.publish(cmd)
+            rospy.sleep(0.1)
 
     def record_summary(self, status, note=None, final_pos=None):
-        """Persist a single mission summary for this drone."""
-        if self.result_recorded:
-            return
-
-        if note:
-            self.notes.append(note)
-
+        if self.result_recorded: return
+        if note: self.notes.append(note)
         if final_pos is None:
-            if self.current_pose is not None:
+            if self.current_pose:
                 final_pos = f"({self.current_pose.position.x:.1f}, {self.current_pose.position.y:.1f})"
             else:
                 final_pos = f"({self.area_config['x']:.1f}, {self.area_config['y']:.1f})"
-
-        if self.boundary_events and not any('boundary' in entry.lower() for entry in self.notes):
-            suffix = 'corrections' if self.boundary_events != 1 else 'correction'
-            self.notes.append(f"{self.boundary_events} boundary {suffix}")
 
         summary = {
             'drone_id': self.drone_id,
@@ -361,370 +462,123 @@ class DroneExplorer:
             'status': status,
             'notes': '; '.join(self.notes) if self.notes else ''
         }
-
         self.result_aggregator.add_result(summary)
         self.result_recorded = True
-    
-    def generate_exploration_waypoints(self):
-        """Generate waypoints to cover the entire area in a grid pattern"""
-        center_x = self.area_config['x']
-        center_y = self.area_config['y']
-        area_size = self.area_config['size']
-        
-        # FIX: User requested variable heights. Assign random altitude per drone.
-        # Was previously reading fixed 'flight_altitude' from yaml (2.0m)
-        altitude = random.uniform(3.0, 3.5)
-        
-        spacing = self.exploration_config['waypoint_spacing']
-        
-        # Calculate area boundaries - STRICT boundaries for colored areas
-        half_size = area_size / 2.0
-        min_x = center_x - half_size + 0.5  # 0.5m margin to stay within color
-        max_x = center_x + half_size - 0.5
-        min_y = center_y - half_size + 0.5
-        max_y = center_y + half_size - 0.5
-        
-        # Store boundaries for enforcement during flight
-        self.min_x = min_x
-        self.max_x = max_x
-        self.min_y = min_y
-        self.max_y = max_y
-        
-        rospy.loginfo(f"[Drone {self.drone_id}] Area bounds: X[{min_x:.1f}, {max_x:.1f}], Y[{min_y:.1f}, {max_y:.1f}]")
-        
-        # Generate grid pattern waypoints
-        pattern = self.exploration_config['patrol_pattern']
-        waypoints = []
-        
-        if pattern == "semicircle":
-            # Semicircle pattern - each drone covers half the circle from opposite ends
-            import math
-            radius = half_size - 1.0  # Stay 1m inside boundary
-            num_points = int(math.pi * radius / spacing) + 1  # Points along semicircle
-            
-            if self.group_index == 0:
-                # First drone: start from 0° (right) to 180° (left) - top semicircle
-                angles = [i * math.pi / (num_points - 1) for i in range(num_points)]
-            else:
-                # Second drone: start from 180° (left) to 360° (right) - bottom semicircle  
-                angles = [math.pi + i * math.pi / (num_points - 1) for i in range(num_points)]
-            
-            for angle in angles:
-                x = center_x + radius * math.cos(angle)
-                y = center_y + radius * math.sin(angle)
-                waypoints.append((x, y, altitude))
-            
-            # Add center point as final waypoint
-            waypoints.append((center_x, center_y, altitude))
-            
-        elif pattern == "grid":
-            # Lawn mower pattern
-            x = min_x
-            y_direction = 1  # 1 for forward, -1 for backward
-            
-            while x <= max_x + 1e-6:
-                if y_direction == 1:
-                    # Move from min_y to max_y
-                    y = min_y
-                    while y <= max_y + 1e-6:
-                        waypoints.append((x, y, altitude))
-                        y += spacing
-                else:
-                    # Move from max_y to min_y
-                    y = max_y
-                    while y >= min_y - 1e-6:
-                        waypoints.append((x, y, altitude))
-                        y -= spacing
-                
-                y_direction *= -1  # Reverse direction
-                x += spacing
-        
-        elif pattern == "spiral":
-            # Spiral from outside to center
-            waypoints = [
-                (min_x, min_y, altitude), (max_x, min_y, altitude),
-                (max_x, max_y, altitude), (min_x, max_y, altitude),
-                (min_x + spacing, min_y + spacing, altitude),
-                (max_x - spacing, min_y + spacing, altitude),
-                (max_x - spacing, max_y - spacing, altitude),
-                (min_x + spacing, max_y - spacing, altitude),
-                (center_x, center_y, altitude)
-            ]
-        
-        if not waypoints:
-            waypoints = [(center_x, center_y, altitude)]
-        elif pattern != "semicircle":
-            # Add center point as final waypoint for non-semicircle patterns
-            waypoints.append((center_x, center_y, altitude))
 
-        # For semicircle pattern, waypoints are already split by group_index
-        # For other patterns, split waypoints among group members
-        if pattern == "semicircle":
-            self.waypoints = waypoints
-            rospy.loginfo(
-                f"[Drone {self.drone_id}] Semicircle coverage (drone {self.group_index + 1}/{self.group_size}) "
-                f"with {len(self.waypoints)} waypoints"
-            )
-        elif self.group_size > 1:
-            shared_segment = [
-                wp for idx, wp in enumerate(waypoints[:-1])
-                if idx % self.group_size == self.group_index
-            ]
-            if not shared_segment and len(waypoints) > 1:
-                shared_segment.append(waypoints[self.group_index % (len(waypoints) - 1)])
-            shared_segment.append(waypoints[-1])
-            self.waypoints = shared_segment
-            rospy.loginfo(
-                f"[Drone {self.drone_id}] Shared coverage segment {self.group_index + 1}/{self.group_size} "
-                f"with {len(self.waypoints)} waypoints"
-            )
-        else:
-            self.waypoints = waypoints
+    def update_control(self, target_x, target_y):
+        """
+        Move towards target waypoint using P-Controller.
+        Called by AreaCoverageController.
+        """
+        if self.current_pose is None: 
+            rospy.logwarn_throttle(5, f"[Drone {self.drone_id}] No Odometry!")
+            return
         
-        rospy.loginfo(f"[Drone {self.drone_id}] Generated {len(self.waypoints)} waypoints for {self.area_name}")
-        rospy.loginfo(
-            f"[Drone {self.drone_id}] Coverage area: {self.area_config['color'].upper()} zone at "
-            f"({center_x}, {center_y}) - {self.farm_name}"
-        )
-    
-    def get_distance_to_waypoint(self, waypoint):
-        """Calculate distance to a waypoint"""
-        if self.current_pose is None:
-            return float('inf')
+        # DEBUG: Confirm we are receiving commands
+        rospy.loginfo_throttle(5, f"[Drone {self.drone_id}] Moving to ({target_x:.1f}, {target_y:.1f})")
+
+        # Battery Logic
+        current_time = rospy.Time.now()
+        dt = (current_time - self.last_battery_time).to_sec()
+        self.last_battery_time = current_time
         
-        dx = waypoint[0] - self.current_pose.position.x
-        dy = waypoint[1] - self.current_pose.position.y
-        return sqrt(dx*dx + dy*dy)
-    
-    def get_angle_to_waypoint(self, waypoint):
-        """Calculate angle to a waypoint"""
-        if self.current_pose is None:
-            return 0
+        # Estimate speed
+        # For simulation, just assume moving if not at target
+        speed = 2.0 
+        bat_pct = self.battery.consume(speed, dt)
+        self.battery_pub.publish(bat_pct)
         
-        dx = waypoint[0] - self.current_pose.position.x
-        dy = waypoint[1] - self.current_pose.position.y
-        return atan2(dy, dx)
-    
-    def is_within_area_bounds(self):
-        """Check if drone is within its assigned area boundaries"""
-        if self.current_pose is None:
-            return True
+        if bat_pct < 20.0:
+             rospy.logwarn_throttle(10, f"Drone {self.drone_id} Low Battery: {bat_pct:.1f}%")
+             # Ideally return to base logic here, but for now just warn
+
+        # P-Control Logic
+        dx = target_x - self.current_pose.position.x
+        dy = target_y - self.current_pose.position.y
+        dist = sqrt(dx*dx + dy*dy)
         
-        x = self.current_pose.position.x
-        y = self.current_pose.position.y
+        # Altitude Control
+        dz = self.flight_altitude - self.current_pose.position.z
         
-        margin = 1.0 # Allow 1.0m drift before triggering safety fail (User Requested Tuning)
-        return (self.min_x - margin <= x <= self.max_x + margin) and (self.min_y - margin <= y <= self.max_y + margin)
-    
-    def explore(self):
-        """Execute exploration mission"""
-        rate = rospy.Rate(10)  # 10 Hz
+        cmd = Twist()
+        # Gain
+        kp_xy = 1.0
+        kp_z = 1.0
         
-        center_x = self.area_config['x']
-        center_y = self.area_config['y']
-        color = self.area_config['color'].upper()
+        # Global velocities
+        vx = max(-1.0, min(1.0, kp_xy * dx))
+        vy = max(-1.0, min(1.0, kp_xy * dy))
+        vz = max(-0.5, min(0.5, kp_z * dz))
         
-        rospy.loginfo(
-            f"[Drone {self.drone_id}] [TARGET] Starting {self.farm_name} sweep "
-            f"(Area {self.area_name}, {color})..."
-        )
-        rospy.loginfo(
-            f"[Drone {self.drone_id}] Target: {self.farm_name} center at ({center_x}, {center_y})"
-        )
+        # DEBUG: Log command
+        # if self.drone_id == 0:
+        #    rospy.loginfo_throttle(1, f"CMD D0: Tgt({target_x:.1f},{target_y:.1f}) Pos({self.current_pose.position.x:.1f},{self.current_pose.position.y:.1f}) Vz={vz:.2f}")
         
-        while not rospy.is_shutdown() and not self.exploration_complete:
-            if self.current_pose is None:
-                try:
-                    rate.sleep()
-                except rospy.ROSInterruptException:
-                    break
-                continue
-            
-            # Update Battery (Simulated)
-            current_time = rospy.Time.now()
-            dt = (current_time - self.last_battery_time).to_sec()
-            self.last_battery_time = current_time
-            
-            # Simple speed estimate from command or physics
-            speed = sqrt(self.current_pose.position.x**2 + self.current_pose.position.y**2) * 0.1 # simplified stat
-            # Better: use cmd_vel or odom delta. For now, assume moving.
-            speed = 2.0 if self.current_waypoint_idx < len(self.waypoints) else 0.0
-            
-            bat_pct = self.battery.consume(speed, dt)
-            self.battery_pub.publish(bat_pct)
-            
-            if bat_pct < 20.0:
-                 rospy.logwarn_throttle(10, f"Drone {self.drone_id} Low Battery: {bat_pct:.1f}%")
+        # Transform global velocity to body frame for drone
+        orientation_q = self.current_pose.orientation
+        orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+        (roll, pitch, yaw) = tf_trans.euler_from_quaternion(orientation_list)
+        
+        # Rotate vector by -yaw
+        vx_body = vx * cos(yaw) + vy * sin(yaw)
+        vy_body = -vx * sin(yaw) + vy * cos(yaw)
 
-            # Check if drone has left its area (safety check)
-            if self.current_waypoint_idx > 0 and not self.is_within_area_bounds():
-                self.boundary_events += 1
-                self.stop_motion()
-                rospy.logwarn_throttle(5.0,
-                    f"[Drone {self.drone_id}] [WARNING] Outside {self.farm_name} bounds! "
-                    f"Returning to center."
-                )
-                self.notes.append(f"Boundary correction #{self.boundary_events}")
-                # CRITICAL: Clear strict path following if we are lost/outside. 
-                # Just go to center.
-                # Find the center waypoint in our list (usually first or just insert it)
-                center_wp = (center_x, center_y, self.exploration_config['flight_altitude'])
-                
-                # Force immediate return
-                dx_global = center_x - self.current_pose.position.x
-                dy_global = center_y - self.current_pose.position.y
-                
-                # Get current yaw
-                orientation_q = self.current_pose.orientation
-                orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-                (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
-                
-                # Rotate global vector to body frame
-                # Body_X (Forward) = dx*cos(yaw) + dy*sin(yaw)
-                # Body_Y (Left)    = -dx*sin(yaw) + dy*cos(yaw)
-                vx_body = dx_global * cos(yaw) + dy_global * sin(yaw)
-                vy_body = -dx_global * sin(yaw) + dy_global * cos(yaw)
-                
-                cmd = Twist()
-                # P-Controller in body frame
-                cmd.linear.x = max(-1.0, min(1.0, 1.0 * vx_body))
-                cmd.linear.y = max(-1.0, min(1.0, 1.0 * vy_body))
-                cmd.linear.z = 0.0 # Maintain altitude
-                self.cmd_vel_pub.publish(cmd)
-                
-                rospy.sleep(0.5) # Allow meaningful movement
-                continue
-            
-            # ------------------------------------------------------------------
-            # MPC-Lite / P-Control Movement Logic
-            # ------------------------------------------------------------------
-            # Check if all waypoints have been visited
-            if self.current_waypoint_idx >= len(self.waypoints):
-                self.stop_motion()
-                self.exploration_complete = True
-                rospy.loginfo(f"[CHECK] [Drone {self.drone_id}] Completed {self.farm_name} coverage!")
-                break
-            
-            # Get current target waypoint
-            current_waypoint = self.waypoints[self.current_waypoint_idx]
-            distance = self.get_distance_to_waypoint(current_waypoint)
-            
-            if distance < 0.2:
-                # Waypoint reached
-                self.current_waypoint_idx += 1
-                progress = (self.current_waypoint_idx / len(self.waypoints)) * 100
-                rospy.loginfo(
-                    f"[Drone {self.drone_id}] {self.farm_name}: {self.current_waypoint_idx}/"
-                    f"{len(self.waypoints)} waypoints ({progress:.1f}%)"
-                )
-                continue
+        cmd.linear.x = vx_body
+        cmd.linear.y = vy_body
+        # Boost Z gain and limit for faster takeoff
+        z_boost = 2.0 * dz
+        cmd.linear.z = max(-1.0, min(1.0, z_boost))
+        
+        # Heading Control: Face target
+        desired_yaw = atan2(dy, dx)
+        yaw_err = desired_yaw - yaw
+        while yaw_err > math.pi: yaw_err -= 2*math.pi
+        while yaw_err < -math.pi: yaw_err += 2*math.pi
+        
+        if dist > 0.5: # only turn if significantly far
+            cmd.angular.z = max(-1.0, min(1.0, 1.0 * yaw_err))
+        
+        # DEBUG: Print Z command if not taking off
+        # if self.drone_id == 0:
+        #     rospy.loginfo_throttle(1, f"Alt Err: {z_err:.2f} CmdZ: {cmd.linear.z:.2f}")
 
-            # Calculate velocity command using direct positional error
-            cmd = Twist()
-            dx = current_waypoint[0] - self.current_pose.position.x
-            dy = current_waypoint[1] - self.current_pose.position.y
+        self.cmd_vel_pub.publish(cmd)
+        
+        # Publish Visual Cone
+        self.publish_cone()
 
-            # Standard P-Control
-            gain = 0.8
-            max_linear_vel = 2.0
-            
-            vx = max(-max_linear_vel, min(max_linear_vel, gain * dx))
-            vy = max(-max_linear_vel, min(max_linear_vel, gain * dy))
-            
-            # DEBUG: Log initial velocity
-            # if self.drone_id == 0:  # Only log for one drone to reduce spam
-            #    rospy.loginfo(f"Drone 0 POS: {self.current_pose.position.x:.1f},{self.current_pose.position.y:.1f} Bounds: {self.min_x:.1f},{self.max_x:.1f} RAW_VEL: {vx:.2f},{vy:.2f}")
+    def publish_cone(self):
+        """Publish a semi-transparent cone marker representing the sensor FoV"""
+        if not self.current_pose: return
 
-            # Directional Boundary Clamping (The "One-way Mirror" Logic)
-            # Directional Boundary Clamping (The "One-way Mirror" Logic)
-            # - If inside: allow any movement that keeps us inside (or moves us to edge)
-            # - If outside: allow only movement TOWARDS the area. Block movement AWAY.
-            
-            # X-Axis Bounds
-            if self.current_pose.position.x < self.min_x:
-                # We are to the LEFT of the area.
-                # ONLY allow driving RIGHT (vx > 0). Left (vx < 0) is forbidden.
-                if vx < 0:
-                    vx = 0.0
-            elif self.current_pose.position.x > self.max_x:
-                # We are to the RIGHT of the area.
-                # ONLY allow driving LEFT (vx < 0). Right (vx > 0) is forbidden.
-                if vx > 0:
-                    vx = 0.0
-            else:
-                 # Inside X bounds. Determine soft margin braking.
-                 margin = self.boundary_soft_margin
-                 # Approaching Left Wall?
-                 if (self.current_pose.position.x - self.min_x) < margin and vx < 0:
-                     vx = max(vx, -0.3)
-                 # Approaching Right Wall?
-                 if (self.max_x - self.current_pose.position.x) < margin and vx > 0:
-                     vx = min(vx, 0.3)
+        marker = Marker()
+        # Using "world" frame is safer if drone frames aren't reliable
+        marker.header.frame_id = "world"
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "fov_cone"
+        marker.id = self.drone_id
+        marker.type = Marker.CYLINDER # Approximates a beam/cone
+        marker.action = Marker.ADD
+        
+        # Position: Cylinder from drone to ground
+        h = self.current_pose.position.z
+        radius = max(0.2, h * 0.5) # Tan(theta) approx
+        
+        marker.pose.position.x = self.current_pose.position.x
+        marker.pose.position.y = self.current_pose.position.y
+        marker.pose.position.z = h / 2.0 # Center of cylinder
+        
+        marker.scale.x = radius * 2
+        marker.scale.y = radius * 2
+        marker.scale.z = h
+        
+        marker.color.r = 0.0
+        marker.color.g = 1.0
+        marker.color.b = 1.0
+        marker.color.a = 0.5 # Semi-transparent Cyan
+        
+        self.marker_pub.publish(marker)
 
-            # Y-Axis Bounds
-            if self.current_pose.position.y < self.min_y:
-                # We are BELOW the area.
-                # ONLY allow driving UP (vy > 0). Down (vy < 0) is forbidden.
-                if vy < 0:
-                    vy = 0.0
-            elif self.current_pose.position.y > self.max_y:
-                # We are ABOVE the area.
-                # ONLY allow driving DOWN (vy < 0). Up (vy > 0) is forbidden.
-                if vy > 0:
-                    vy = 0.0
-            else:
-                 # Inside Y bounds. Soft margin braking.
-                 margin = self.boundary_soft_margin
-                 # Approaching Bottom Wall?
-                 if (self.current_pose.position.y - self.min_y) < margin and vy < 0:
-                     vy = max(vy, -0.3)
-                 # Approaching Top Wall?
-                 if (self.max_y - self.current_pose.position.y) < margin and vy > 0:
-                     vy = min(vy, 0.3)
-
-            # Z-axis control (Altitude P-Controller)
-            target_z = self.exploration_config.get('flight_altitude', 2.0)
-            # Safety clamp for target Z
-            target_z = max(0.5, min(15.0, target_z))
-            
-            z_err = target_z - self.current_pose.position.z
-            vz = max(-1.0, min(1.0, 1.5 * z_err))
-            
-            # CRITICAL FIX: Transform Global Velocity to Body Frame
-            # cmd_vel expects linear.x = forward, linear.y = left
-            orientation_q = self.current_pose.orientation
-            orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-            (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
-            
-            # Rotate vector by -yaw
-            vx_body = vx * cos(yaw) + vy * sin(yaw)
-            vy_body = -vx * sin(yaw) + vy * cos(yaw)
-
-            cmd.linear.x = vx_body
-            cmd.linear.y = vy_body
-            cmd.linear.z = vz
-            cmd.angular.z = 0.0 # Maintain heading (or add hearing control if needed)
-
-            self.cmd_vel_pub.publish(cmd)
-
-            try:
-                rate.sleep()
-            except rospy.ROSInterruptException:
-                break
-
-        if self.exploration_complete:
-            self.record_summary('complete', note='Returned to center')
-        elif rospy.is_shutdown():
-            self.record_summary('aborted', note='ROS shutdown during mission')
-        else:
-            self.record_summary('stopped', note='Exploration halted early')
-
-        self.stop_motion()
-        rospy.loginfo(
-            f"[Drone {self.drone_id}] Risk report -> actual {self.actual_probability*100:.1f}% | "
-            f"onboard {self.measured_probability*100:.1f}% | error {self.risk_error_pct:+.2f}% | "
-            f"boundary corrections {self.boundary_events}"
-        )
 
 
 class BackupDrone:
@@ -1210,73 +1064,113 @@ def main():
     rospy.loginfo(f"Allocation report written to {report_path}")
     rospy.loginfo(f"Mission summary written to {summary_path}")
     
+
     # Wait for odometry
     rospy.loginfo("Waiting for odometry data...")
     rospy.sleep(3.0)
     
-    # Start exploration threads
-    rospy.loginfo("Starting area exploration missions...")
+    # Initialize Area Managers (Algo 3)
+    area_controllers = []
+    
+    # Group explorers by area
+    area_groups = {}
+    for explorer in explorers:
+        if explorer.area_name not in area_groups:
+            area_groups[explorer.area_name] = []
+        area_groups[explorer.area_name].append(explorer)
+    
+    for area_name, explorer_list in area_groups.items():
+        area_cfg = areas[area_name]
+        controller = AreaCoverageController(area_name, area_cfg, explorer_list)
+        area_controllers.append(controller)
+
+    # Start exploration missions (Centralized Loop)
+    rospy.loginfo("Starting Algo 3 coverage simulation...")
     rospy.loginfo("=" * 60)
     
+    # Start backup threads (they are independent)
     threads = []
-    
-    # Start explorer threads
-    for explorer in explorers:
-        thread = threading.Thread(target=explorer.explore)
-        thread.daemon = True
-        thread.start()
-        threads.append(thread)
-    
-    # Start backup threads
     for backup in backups:
         thread = threading.Thread(target=backup.hold_position)
         thread.daemon = True
         thread.start()
         threads.append(thread)
     
-    # Wait for all explorers to complete
-    for explorer in explorers:
-        while not explorer.exploration_complete and not rospy.is_shutdown():
-            rospy.sleep(1.0)
+    rate = rospy.Rate(10) # 10Hz
+    start_time = rospy.Time.now()
     
-    completed = sum(1 for explorer in explorers if explorer.exploration_complete)
-    interrupted = len(explorers) - completed
+    while not rospy.is_shutdown():
+        # Step each area controller
+        active_areas = 0
+        
+        for controller in area_controllers:
+            if not controller.is_complete():
+                controller.step()
+                active_areas += 1
+            else:
+                # Optional: Command drones to land or hold?
+                # For now, they will stop receiving updates and hover (cmd_vel timeout or similar)
+                # But best to command hover explicitly
+                for drone in controller.drone_explorers:
+                    if not drone.exploration_complete:
+                         drone.exploration_complete = True
+                         drone.stop_motion()
+                         drone.record_summary('complete', "Algo 3 Coverage Complete") 
+                         rospy.loginfo(f"Drone {drone.drone_id} finished. Landing...")
 
-    rospy.loginfo("=" * 60)
-    if interrupted == 0:
-        rospy.loginfo("[CHECK] ALL EXPLORATION MISSIONS COMPLETED!")
-        rospy.loginfo(f"  - {completed} drones have fully explored their assigned areas")
-    else:
-        rospy.logwarn("! EXPLORATION MISSIONS ENDED EARLY")
-        rospy.loginfo(f"  - {completed} drones completed coverage")
-        rospy.loginfo(f"  - {interrupted} drones returned early or were interrupted")
-    rospy.loginfo(f"  - {len(backups)} backup drones remain at starting position")
-    rospy.loginfo("=" * 60)
+        # Calculate Total System Coverage
+        total_pts = 0
+        total_covered = 0
+        for controller in area_controllers:
+            v, t, _ = controller.grid_manager.get_progress_stats()
+            total_covered += v
+            total_pts += t
+            
+        total_pct = (total_covered / total_pts * 100.0) if total_pts > 0 else 0.0
+        rospy.loginfo_throttle(10, f"[SYSTEM] Total Field Coverage: {total_pct:.1f}%")
 
+        if active_areas == 0:
+            rospy.loginfo("All areas covered!")
+            rospy.loginfo("Stopping all drones...")
+            # Ensure everyone gets a final stop command
+            for controller in area_controllers:
+                for drone in controller.drone_explorers:
+                     drone.stop_motion()
+            break
+
+            total_pts += t
+            
+        total_pct = (total_covered / total_pts * 100.0) if total_pts > 0 else 0.0
+        rospy.loginfo_throttle(10, f"[SYSTEM] Total Field Coverage: {total_pct:.1f}%")
+
+        if active_areas == 0:
+            rospy.loginfo("All areas covered!")
+            break
+
+        try:
+            rate.sleep()
+        except rospy.ROSInterruptException:
+            break
+    
+    # Summarize
+    for explorer in explorers:
+        if not explorer.exploration_complete:
+            explorer.record_summary('aborted', 'Mission Timeout/Ending')
+
+    rospy.sleep(1.0) # Grace time
+    
+    # Join threads
     for thread in threads:
         thread.join(timeout=1.0)
-
-    rospy.sleep(0.5)
-
-    mission_results = aggregator.get_results()
-    build_allocation_report(
-        report_path,
-        areas,
-        area_profiles,
-        allocation_counts,
-        full_plan,
-        mission_results=mission_results
-    )
-    write_mission_summary(
-        summary_path,
-        areas,
-        full_plan,
-        mission_results
-    )
-    rospy.loginfo("Allocation report updated with mission observations")
-    rospy.loginfo("Mission summary updated with docking states")
     
-    # Validated: Auto-shutdown sequence
+    rospy.loginfo("=" * 60)
+    rospy.loginfo("[CHECK] MISSION COMPLETE!")
+    
+    # Reporting
+    mission_results = aggregator.get_results()
+    build_allocation_report(report_path, areas, area_profiles, allocation_counts, full_plan, mission_results)
+    write_mission_summary(summary_path, areas, full_plan, mission_results)
+    
     rospy.loginfo("All missions complete. Notifying fleet and shutting down in 5 seconds...")
     try:
         mission_pub.publish(Bool(data=True))
@@ -1284,6 +1178,7 @@ def main():
         pass
     rospy.sleep(5.0)
     rospy.signal_shutdown("All missions completed")
+
 
 
 if __name__ == '__main__':

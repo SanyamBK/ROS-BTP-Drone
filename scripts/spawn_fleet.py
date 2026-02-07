@@ -3,6 +3,7 @@
 import rospy
 import os
 import random
+import math
 from gazebo_msgs.srv import SpawnModel
 from geometry_msgs.msg import Pose
 
@@ -17,32 +18,38 @@ def spawn_fleet():
     with open(model_path, 'r') as f:
         model_xml = f.read()
 
-    # Coordinates from legacy spawn_drones.launch
-    # Updated to spawn only 10 drones (2 per farmland)
-    positions = [
-        (0.0, -20.0), (0.5, -20.0), (-0.5, -20.0),
-        (0.0, -19.5), (0.0, -20.5), (0.3, -19.7),
-        (-0.3, -20.3), (0.5, -19.5), (-0.5, -19.5)
-    ]
+
+
+    # Spawning 11 drones in a circle around the farmland areas
+    # Center approx (0, 5), Radius 25m
+    positions = []
+    num_drones = 11
+    center_x = 0.0
+    center_y = 5.0   # Centered on farms
+    radius = 25.0    # Wide circle around farms
     
-    # z_height = 0.2 (Old fixed height)
+    for i in range(num_drones):
+        angle = (2 * math.pi * i) / num_drones
+        x = center_x + radius * math.cos(angle)
+        y = center_y + radius * math.sin(angle)
+        positions.append((x, y))
 
     for i, (x, y) in enumerate(positions):
         drone_name = f"drone_{i}"
-        rospy.loginfo(f"Spawning {drone_name} at ({x}, {y})...")
+        
+        rospy.loginfo(f"Spawning {drone_name} at ({x:.2f}, {y:.2f})...")
         
         initial_pose = Pose()
         initial_pose.position.x = x
         initial_pose.position.y = y
-        # Adjust flight altitude to vary between 3.0m and 3.5m
-        initial_pose.position.z = random.uniform(3.0, 3.5)
+        initial_pose.position.z = random.uniform(1.5, 2.0) # Start at height 1.5m - 2.0m
         
         try:
             spawn_model(drone_name, model_xml, f"drone_{i}", initial_pose, "world")
         except rospy.ServiceException as e:
             rospy.logerr(f"Spawn failed for {drone_name}: {e}")
             
-        rospy.sleep(0.5) # 500ms delay to let Gazebo breathe
+        rospy.sleep(0.2) # Reduced delay as they are far apart
 
 if __name__ == '__main__':
     spawn_fleet()

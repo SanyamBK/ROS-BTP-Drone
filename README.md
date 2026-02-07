@@ -34,12 +34,17 @@ Climate change is increasing the frequency and severity of agricultural droughts
 - **Intelligent resource allocation** prioritizing high-risk areas
 - **Comprehensive monitoring** with centralized communication coordination
 
-### 🆕 Latest Updates (December 2025)
-- **Optimized fleet size**: Reduced from 18 to 11 drones for efficiency
-- **Consolidated areas**: 5 larger farmland regions (vs. 10 scattered patches)
-- **Connection logging**: New `logs/connection_report.log` tracks all communication events
-- **Central coordination**: Asynchronous 3-way handshake protocol (HELLO → HI → ACK)
-- **Bug fixes**: Resolved indentation errors in `central_agent.py` and `ugv_manager.py`
+### 🆕 Simulation Update (Feb 2026)
+
+This system now runs **Algorithm 3 (Hybrid GOMWC + LERR + Shake)** for optimized coverage:
+
+- **GOMWC (Greedy Overlap-Minimizing Waypoint Coverage)**: Optimized for closest-unvisited prioritization.
+- **Target-Based Repulsion (Proactive LERR)**: Drones proactively avoid targets chosen by others, preventing clustering.
+- **Proximity Shake**: Dynamic conflict resolution forces drones apart if they get too close (<2.5m).
+- **Global Locking**: Drones lock targets until arrival, ensuring stable flight paths.
+- **Adaptive Grid Density**: 
+    - **Area 2 & 5 (12m)**: 81 Waypoints (9x9).
+    - **Area 1, 3, 4 (10m)**: 49 Waypoints (7x7).
 
 ## ✨ Key Features
 
@@ -64,6 +69,10 @@ Climate change is increasing the frequency and severity of agricultural droughts
 - **Connection Logging**: All communication events (HELLO broadcasts, HI responses, ACK confirmations) are timestamped and logged to `logs/connection_report.log`
 - **Dynamic Vision (Swept Area)**: Coverage is calculated in real-time based on the "swept area" of the drone's moving field-of-view, simulating realistic sensor footprint data collection.
 - **3D Flight Dynamics**: Drones operate at variable altitudes (3.0m - 3.5m) to maintain realistic vertical separation and diverse sensor perspectives.
+- **Waypoint Grid Density**: The system automatically adjusts waypoint density based on area size:
+    - **12m Areas** (Soybean, Vegetables): 81 Waypoints (9x9 grid).
+    - **10m Areas** (Wheat, Maize, Barley): 49 Waypoints (7x7 grid).
+    - *This ensures consistent coverage density regardless of farm size.*
 
 ## 📚 Research Foundation
 The system's architecture is built upon the following key research papers:
