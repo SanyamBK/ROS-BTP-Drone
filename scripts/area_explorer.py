@@ -319,12 +319,43 @@ class AreaCoverageController:
         Execute one step of the algorithm logic.
         Drones sync position, Algo determines target, Drones execute.
         """
-        # 1. Update Positions & Algo State
+            # 1. Update Positions & Algo State
         for i, explorer in enumerate(self.drone_explorers):
-            if explorer.current_pose:
+            # Check for Scanning State FIRST
+            if explorer.is_scanning():
+                explorer.hold_hover()
+                continue  # Skip updating algo position - let it think we are still "arriving"
+            
+            # Check if we JUST finished scanning. If so, we must NOT re-trigger scanning;
+            # instead we must let the algo update (mark visited).
+            if explorer.check_just_finished():
+                 # Proceed directly to update algo
+                 rospy.loginfo(f"[Drone {explorer.drone_id}] Scan Complete. Marking visited.")
+                 self.algo.force_mark_visited(i)
+            
+            elif explorer.current_pose:
                 local_x = explorer.current_pose.position.x - self.origin_x
                 local_y = explorer.current_pose.position.y - self.origin_y
                 
+                # Check arrival at current target BEFORE updating Algo
+                # If we just arrived, we want to Trigger Scanning, NOT mark visited yet (effectively)
+                # But Algo updates position and marks visited immediately if close.
+                # So we must check distance to CURRENT target first.
+                
+                target = self.algo.get_target_coords(i)
+                if target:
+                    tx, ty = target
+                    dist = math.hypot(local_x - tx, local_y - ty)
+                    if dist < 0.5:
+                        # Arrived! Start Scanning
+                        rospy.loginfo(f"[Drone {explorer.drone_id}] Arrived at waypoint. Scanning...")
+                        explorer.start_scanning()
+                        explorer.hold_hover()
+                        continue # Skip Algo update this tick
+                
+            if explorer.current_pose:
+                local_x = explorer.current_pose.position.x - self.origin_x
+                local_y = explorer.current_pose.position.y - self.origin_y
                 # Update Algo with position (Checks for visited waypoints internally)
                 self.algo.update_drone_pose(i, local_x, local_y)
 
@@ -335,6 +366,10 @@ class AreaCoverageController:
         finished_drones = 0
         
         for i, explorer in enumerate(self.drone_explorers):
+            # If scanning, do not send new nav goal
+            if explorer.is_scanning():
+                continue
+
             target = self.algo.get_target_coords(i)
             
             if target:
@@ -417,29 +452,101 @@ class DroneExplorer:
         self.marker_pub = rospy.Publisher(f'/drone_{drone_id}/cone_marker', Marker, queue_size=1)
         
         # Assign altitude (1.5m - 2.0m as requested)
-        self.flight_altitude = 2.0
+        # Staggered to prevent downwash: 3.0, 3.5, 4.0 based on ID
+        self.flight_altitude = 3.0 + (self.drone_id % 3) * 0.5
+        
+        # State:
+        self.waiting_for_charge = False
 
         risk_pct = self.actual_probability * 100.0
         rospy.loginfo(
             f"[Drone {drone_id}] EXPLORER assigned to {self.farm_name} ({area_name}) | "
             f"Risk {risk_pct:.1f}% | Algo 3 Controlled"
         )
+        
+        # SCANNING STATE
+        self.scanning_active = False
+        self.just_finished = False
+        self.scan_start_time = None
+        self.scan_duration = 1.0 # seconds
+
+    def start_scanning(self):
+        self.scanning_active = True
+        self.just_finished = False
+        self.scan_start_time = rospy.Time.now()
+
+    def is_scanning(self):
+        if not self.scanning_active:
+            return False
+            
+        elapsed = (rospy.Time.now() - self.scan_start_time).to_sec()
+        if elapsed >= self.scan_duration:
+            self.scanning_active = False
+            self.just_finished = True
+            return False
+        
+        return True
+    
+    def check_just_finished(self):
+        """Returns True if scanning just finished, and clears the flag."""
+        if self.just_finished:
+            self.just_finished = False
+            return True
+        return False
+
+    def hold_hover(self):
+        """Hold position (hover)"""
+        cmd = Twist()
+        # Altitude hold if possible
+        if self.current_pose:
+            dz = self.flight_altitude - self.current_pose.position.z 
+            # Increased Gain to 2.0 to prevent sinking, matching update_control boost
+            cmd.linear.z = max(-0.5, min(0.5, 2.0 * dz))
+            
+            # Dampen horizontal motion explicitly?
+            # Sending 0.0 is the best braking command usually.
+            
+        self.cmd_vel_pub.publish(cmd)
+        self.publish_cone()
 
     def charge_callback(self, msg):
         rospy.loginfo(f"[Drone {self.drone_id}] Receiving Charge: {msg.data}%")
         self.battery.recharge(msg.data)
+        
+        if self.waiting_for_charge and self.battery.get_percentage() > 90.0:
+            rospy.loginfo(f"[Drone {self.drone_id}] Battery RECHARGED > 90%! Resuming Mission...")
+            self.waiting_for_charge = False
 
     def odom_callback(self, msg):
         self.current_pose = msg.pose.pose
 
-    def stop_motion(self):
-        # Land and disarm (simulated by zero vel)
-        # Send simple land command (negative z)
+    def land_step(self):
+        """
+        Descend until grounded, then hold (disable motors).
+        Called continuously in main loop after mission complete.
+        """
         cmd = Twist()
-        cmd.linear.z = -0.5 # Descend
-        for _ in range(10): # Send multiple times to ensure receipt
-            self.cmd_vel_pub.publish(cmd)
-            rospy.sleep(0.1)
+        
+        # If we have odometry, use it for controlled descent
+        if self.current_pose:
+            z = self.current_pose.position.z
+            
+            if z > 0.15: # Above ground threshold
+                # Descend
+                cmd.linear.z = -0.5 
+                # Keep horizontal velocity zero to prevent drift
+                cmd.linear.x = 0.0
+                cmd.linear.y = 0.0
+                cmd.angular.z = 0.0
+                self.cmd_vel_pub.publish(cmd)
+            else:
+                # Grounded. Send zero command to stop motors.
+                # This effectively disarms/stops the drone in simulation.
+                self.cmd_vel_pub.publish(Twist())
+        else:
+             # No odom, just send blind land command
+             cmd.linear.z = -0.5
+             self.cmd_vel_pub.publish(cmd)
 
     def record_summary(self, status, note=None, final_pos=None):
         if self.result_recorded: return
@@ -488,9 +595,13 @@ class DroneExplorer:
         bat_pct = self.battery.consume(speed, dt)
         self.battery_pub.publish(bat_pct)
         
-        if bat_pct < 20.0:
-             rospy.logwarn_throttle(10, f"Drone {self.drone_id} Low Battery: {bat_pct:.1f}%")
-             # Ideally return to base logic here, but for now just warn
+        if bat_pct < 20.0 and not self.waiting_for_charge:
+             rospy.logwarn_throttle(5, f"Drone {self.drone_id} Low Battery: {bat_pct:.1f}% -> WAITING FOR UGV CHARGE")
+             self.waiting_for_charge = True
+             
+        if self.waiting_for_charge:
+            self.hold_hover()
+            return
 
         # P-Control Logic
         dx = target_x - self.current_pose.position.x
@@ -607,8 +718,33 @@ class BackupDrone:
         self.cmd_vel_pub = rospy.Publisher(
             cmd_vel_topic, Twist, queue_size=1
         )
-    
-    def land(self):
+        
+    def odom_callback(self, msg):
+        self.current_pose = msg.pose.pose
+
+    def hold_position(self):
+        """Hold position loop (run in thread)"""
+        rate = rospy.Rate(10)
+        rospy.loginfo(f"[BackupDrone {self.drone_id}] Holding position...")
+        
+        while not rospy.is_shutdown():
+            if self.current_pose:
+                # Simple P-control to hold altitude at 2.0m ?
+                # Or just hover. Let's do simple hover command (0 velocity)
+                # But to be safe against gravity, we might need a controller.
+                # However, for now, let's just publish 0 Twist to keep the connection alive.
+                # If they drift, so be it, they are backups.
+                cmd = Twist()
+                # cmd.linear.z = 0.5 * (2.0 - self.current_pose.position.z) # Optional altitude hold
+                self.cmd_vel_pub.publish(cmd)
+            else:
+                 # Blind hover
+                 self.cmd_vel_pub.publish(Twist())
+                 
+            try:
+                rate.sleep()
+            except rospy.ROSInterruptException:
+                break
         """Land the drone"""
         rospy.loginfo(f"[Drone {self.drone_id}] Landing...")
         rate = rospy.Rate(10)
@@ -914,46 +1050,93 @@ def main():
         )
         standby_desired = max(0, num_drones - total_required)
 
-    available_drones = list(range(num_drones))
+    # ---------------------------------------------------------
+    # DISTANCE-BASED ALLOCATION LOGIC
+    # ---------------------------------------------------------
+    rospy.loginfo("[Main] Calculating spawn positions to minimize travel distance...")
+    
+    # 1. Calculate Expected Spawn Positions (Same as spawn_fleet.py)
+    # Center (0, 5), Radius 25m
+    spawn_center_x = 0.0
+    spawn_center_y = 5.0
+    spawn_radius = 25.0
+    
+    drone_spawn_pos = {}
+    for i in range(num_drones):
+        angle = (2 * math.pi * i) / num_drones
+        sx = spawn_center_x + spawn_radius * math.cos(angle)
+        sy = spawn_center_y + spawn_radius * math.sin(angle)
+        drone_spawn_pos[i] = (sx, sy)
+
+    # 2. Generate all potential (Drone, Area) pairs with distance
+    potential_assignments = []
+    
+    for d_id, (dx, dy) in drone_spawn_pos.items():
+        for area_name in area_names:
+            acfg = areas[area_name]
+            # Area Center
+            ax = acfg.get('x', 0)
+            ay = acfg.get('y', 0)
+            
+            dist = math.hypot(dx - ax, dy - ay)
+            potential_assignments.append((dist, d_id, area_name))
+            
+    # 3. Sort by distance (Greedy approach: Closest pairs first)
+    potential_assignments.sort(key=lambda x: x[0])
+    
+    # 4. Allocate
+    assigned_drones = set()
+    area_allocations = {name: [] for name in area_names}
     full_plan = [None] * num_drones
     allocation_counts = {}
-
-    for area_name in area_names:
-        group_assignments = []
-
-        # Keep standby_desired drones unassigned until end
-        while len(group_assignments) < 2 and len(available_drones) > standby_desired:
-            group_assignments.append(available_drones.pop(0))
-
-        group_size = len(group_assignments)
-        allocation_counts[area_name] = group_size
-
-        if group_size < 2:
-            rospy.logwarn(
-                f"[Main] Only {group_size} drone(s) available for {area_name}; coverage will be partial."
-            )
-
-        for idx, drone_id in enumerate(group_assignments):
-            full_plan[drone_id] = {
-                'role': 'explorer',
-                'area': area_name,
-                'group_index': idx,
-                'group_size': group_size,
-                'probability': area_profiles[area_name]['probability'],
-                'role_label': 'explorer'
-            }
-
-    # Remaining drones become standby/backups at the spawn pad
-    standby_drones = []
-    while available_drones:
-        drone_id = available_drones.pop(0)
-        if len(standby_drones) < standby_desired:
-            standby_drones.append(drone_id)
-        full_plan[drone_id] = {
-            'role': 'backup',
-            'area': 'staging',
-            'role_label': 'backup'
+    
+    # Target: 2 drones per area
+    target_per_area = 2
+    
+    for dist, d_id, area_name in potential_assignments:
+        # Stop if drone already assigned
+        if d_id in assigned_drones:
+            continue
+            
+        # Stop if area is full
+        if len(area_allocations[area_name]) >= target_per_area:
+            continue
+            
+        # Assign
+        assigned_drones.add(d_id)
+        area_allocations[area_name].append(d_id)
+        
+        # Config
+        group_idx = len(area_allocations[area_name]) - 1
+        full_plan[d_id] = {
+            'role': 'explorer',
+            'area': area_name,
+            'group_index': group_idx,
+            'group_size': target_per_area, 
+            'probability': area_profiles[area_name]['probability'],
+            'role_label': 'explorer'
         }
+        
+        rospy.loginfo(f"  -> Assigned Drone {d_id} to {area_name} (Dist: {dist:.1f}m)")
+
+    # 5. Handle Unassigned Areas (if fleet too small) or Drones (Standby)
+    for area_name in area_names:
+        count = len(area_allocations[area_name])
+        allocation_counts[area_name] = count
+        if count < target_per_area:
+             rospy.logwarn(f"[Main] {area_name} under-allocated: {count}/{target_per_area}")
+
+    # Remaining drones -> Standby
+    standby_drones = []
+    for d_id in range(num_drones):
+        if d_id not in assigned_drones:
+            assigned_drones.add(d_id)
+            standby_drones.append(d_id)
+            full_plan[d_id] = {
+                'role': 'backup',
+                'area': 'staging',
+                'role_label': 'backup'
+            }
 
     rospy.loginfo("\n" + "="*60)
     rospy.loginfo("ALLOCATION SUMMARY (FIXED 2-PER-AREA)")
@@ -1114,9 +1297,12 @@ def main():
                 for drone in controller.drone_explorers:
                     if not drone.exploration_complete:
                          drone.exploration_complete = True
-                         drone.stop_motion()
+                         # drone.stop_motion() # Replaced by continuous land_step
                          drone.record_summary('complete', "Algo 3 Coverage Complete") 
-                         rospy.loginfo(f"Drone {drone.drone_id} finished. Landing...")
+                         rospy.loginfo(f"Drone {drone.drone_id} finished. Initiating landing sequence...")
+
+                    # Continuous Landing Logic
+                    drone.land_step()
 
         # Calculate Total System Coverage
         total_pts = 0
@@ -1133,9 +1319,10 @@ def main():
             rospy.loginfo("All areas covered!")
             rospy.loginfo("Stopping all drones...")
             # Ensure everyone gets a final stop command
+            # Ensure everyone gets a final stop command
             for controller in area_controllers:
                 for drone in controller.drone_explorers:
-                     drone.stop_motion()
+                     drone.cmd_vel_pub.publish(Twist())
             break
 
             total_pts += t

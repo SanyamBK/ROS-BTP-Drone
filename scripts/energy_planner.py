@@ -27,17 +27,24 @@ class EnergyAwarePlanner:
         
         self.num_drones = 18
         self.drone_states = {} 
-        self.ugv_pos = Point(0,0,0)
-        self.ugv_yaw = 0.0
-        
-        # State Machine
-        self.state = "IDLE" 
-        self.current_target_id = None
-        self.last_charge_time = rospy.Time.now()
-        
+        self.ugv_ids = ['ugv1', 'ugv2']
+        self.ugvs = {}
+        for uid in self.ugv_ids:
+            self.ugvs[uid] = {
+                'pos': Point(0,0,0),
+                'yaw': 0.0,
+                'state': 'IDLE',
+                'target_id': None,
+                'path': [],
+                'path_idx': 0,
+                'last_charge_time': rospy.Time.now(),
+                'cmd_pub': rospy.Publisher(f'/{uid}/cmd_vel', Twist, queue_size=10)
+            }
+            rospy.Subscriber(f'/{uid}/odom', Odometry, self.ugv_cb, callback_args=uid)
+
         # Planning State
-        self.path = [] # List of (x,y) tuples
-        self.path_idx = 0
+        # self.path = [] # Removed single path
+        # self.path_idx = 0
         
         # Subscribe to Drone Data
         for i in range(self.num_drones):
@@ -45,19 +52,17 @@ class EnergyAwarePlanner:
             rospy.Subscriber(f'/drone_{i}/battery', Float32, self.bat_cb, callback_args=i)
             rospy.Subscriber(f'/drone_{i}/odom', Odometry, self.odom_cb, callback_args=i)
             
-        rospy.Subscriber('/ugv/odom', Odometry, self.ugv_cb)
-        self.ugv_cmd = rospy.Publisher('/ugv/cmd_vel', Twist, queue_size=10)
         self.charge_pubs = {}
         for i in range(self.num_drones):
             self.charge_pubs[i] = rospy.Publisher(f'/drone_{i}/charge_cmd', Float32, queue_size=10)
-
+            
         self.rate = rospy.Rate(10)
         
         # LOGGING USER SPECS
         print("\n" + "="*60)
         rospy.loginfo("[EnergyPlanner] INITIALIZED with User Logic:")
         rospy.loginfo(" > Method: Dijkstra Grid Search (2m resolution)")
-        rospy.loginfo(" > Planner: Priority-based (Urgency/Cost)")
+        rospy.loginfo(" > Planner: Multi-UGV Priority Assignment")
         rospy.loginfo(" > Charging: Instant Charge after 1s dwell.")
         print("="*60 + "\n")
 
@@ -69,26 +74,28 @@ class EnergyAwarePlanner:
     def odom_cb(self, msg, drone_id):
         self.drone_states[drone_id]['pos'] = msg.pose.pose.position
 
-    def ugv_cb(self, msg):
-        self.ugv_pos = msg.pose.pose.position
+    def ugv_cb(self, msg, ugv_id):
+        self.ugvs[ugv_id]['pos'] = msg.pose.pose.position
         # Extract yaw from quaternion (simplified)
         q = msg.pose.pose.orientation
-        self.ugv_yaw = atan2(2.0*(q.w*q.z + q.x*q.y), 1.0 - 2.0*(q.y*q.y + q.z*q.z))
+        self.ugvs[ugv_id]['yaw'] = atan2(2.0*(q.w*q.z + q.x*q.y), 1.0 - 2.0*(q.y*q.y + q.z*q.z))
 
 
 
-    def get_priority_score(self, drone_id):
+    def get_priority_score(self, drone_id, ugv_pos):
         data = self.drone_states[drone_id]
         if data['bat'] > 95.0: return 0.0 
+        if data['under_charge']: return 0.0 # Already being handled?
         
         # GEOP FENCE: Ignore drones at spawn/home base (Y < -15.0)
         # The farm is roughly -12 to +12. Spawn is -20.
         if data['pos'].y < -15.0:
             return 0.0
         
-        dx = data['pos'].x - self.ugv_pos.x
-        dy = data['pos'].y - self.ugv_pos.y
+        dx = data['pos'].x - ugv_pos.x
+        dy = data['pos'].y - ugv_pos.y
         dist = sqrt(dx*dx + dy*dy)
+        if dist < 0.1: dist = 0.1
         
         urgency = (100.0 - data['bat']) ** 2
         cost = dist + 1.0
@@ -158,52 +165,55 @@ class EnergyAwarePlanner:
         rospy.loginfo(f"[Dijkstra] Path found! Length: {len(path)} nodes.")
         return path
 
-    def navigate_to_target(self):
-        if self.current_target_id is None:
+    def navigate_ugv(self, ugv_id):
+        ugv = self.ugvs[ugv_id]
+        target_id = ugv['target_id']
+        
+        if target_id is None:
             return
 
-        target_pos = self.drone_states[self.current_target_id]['pos']
+        target_pos = self.drone_states[target_id]['pos']
         
         # Check Final Distance
-        dx = target_pos.x - self.ugv_pos.x
-        dy = target_pos.y - self.ugv_pos.y
+        dx = target_pos.x - ugv['pos'].x
+        dy = target_pos.y - ugv['pos'].y
         dist = sqrt(dx*dx + dy*dy)
         
         if dist < 2.0:
-            self.state = "CHARGING"
-            self.last_charge_time = rospy.Time.now()
-            self.ugv_cmd.publish(Twist()) # Stop
-            rospy.loginfo(f"[Planner] Arrived at Drone {self.current_target_id}. Charging...")
+            ugv['state'] = "CHARGING"
+            ugv['last_charge_time'] = rospy.Time.now()
+            ugv['cmd_pub'].publish(Twist()) # Stop
+            rospy.loginfo(f"[Planner] {ugv_id} Arrived at Drone {target_id}. Charging...")
             return
 
         # Path Planning / Following
-        if not self.path:
-            self.path = self.plan_path_dijkstra(self.ugv_pos, target_pos)
-            self.path_idx = 0
+        if not ugv['path']:
+            ugv['path'] = self.plan_path_dijkstra(ugv['pos'], target_pos)
+            ugv['path_idx'] = 0
             
-        if not self.path: # Still no path? Just drive direct (Fallback)
-             rospy.logwarn_throttle(5, "Dijkstra failed. Fallback to direct drive.")
+        if not ugv['path']: # Still no path? Just drive direct (Fallback)
+             # rospy.logwarn_throttle(5, f"{ugv_id} Dijkstra failed. Fallback to direct drive.")
              target_x, target_y = target_pos.x, target_pos.y
         else:
              # Follow Path
-             if self.path_idx < len(self.path):
-                 target_x, target_y = self.path[self.path_idx]
+             if ugv['path_idx'] < len(ugv['path']):
+                 target_x, target_y = ugv['path'][ugv['path_idx']]
                  # Distance to intermediate waypoint
-                 w_dx = target_x - self.ugv_pos.x
-                 w_dy = target_y - self.ugv_pos.y
+                 w_dx = target_x - ugv['pos'].x
+                 w_dy = target_y - ugv['pos'].y
                  if sqrt(w_dx*w_dx + w_dy*w_dy) < 1.0: # Reached waypoint
-                     self.path_idx += 1
-                     if self.path_idx >= len(self.path):
+                     ugv['path_idx'] += 1
+                     if ugv['path_idx'] >= len(ugv['path']):
                          # Last point, aim for actual drone
                          target_x, target_y = target_pos.x, target_pos.y
              else:
                  target_x, target_y = target_pos.x, target_pos.y
 
         # Control to intermediate target (target_x, target_y)
-        t_dx = target_x - self.ugv_pos.x
-        t_dy = target_y - self.ugv_pos.y
+        t_dx = target_x - ugv['pos'].x
+        t_dy = target_y - ugv['pos'].y
         target_yaw = atan2(t_dy, t_dx)
-        err_yaw = target_yaw - self.ugv_yaw
+        err_yaw = target_yaw - ugv['yaw']
         while err_yaw > 3.14159: err_yaw -= 2*3.14159
         while err_yaw < -3.14159: err_yaw += 2*3.14159
         
@@ -214,49 +224,67 @@ class EnergyAwarePlanner:
             cmd.angular.z = 1.5 * err_yaw
             cmd.linear.x = 2.0 
             
-        self.ugv_cmd.publish(cmd)
+        ugv['cmd_pub'].publish(cmd)
 
     def run_logic(self):
-
         
-        if self.state == "IDLE" or self.state == "MOVING":
-            # RE-EVALUATE PRIORITY
-            scores = []
-            for i in self.drone_states:
-                s = self.get_priority_score(i)
-                scores.append((i, s, self.drone_states[i]['bat']))
-            scores.sort(key=lambda x: x[1], reverse=True)
+        # Identify Critical Drones NOT already targeted by a UGV
+        # 1. Gather Needs
+        # 2. Iterate UGVs
+        
+        # Set of targeted drones
+        targeted_drones = set()
+        for uid, u in self.ugvs.items():
+            if u['target_id'] is not None:
+                targeted_drones.add(u['target_id'])
+                
+        for uid in self.ugv_ids:
+            ugv = self.ugvs[uid]
             
-            if rospy.get_time() % 5.0 < 0.1:
-                top_3 = [f"D{i}(S:{s:.1f})" for i,s,b in scores[:3] if s > 0]
-                if top_3: rospy.loginfo(f"[Planner] Queue: {top_3}")
-            else:
-                 if rospy.get_time() % 10.0 < 0.1:
-                    rospy.loginfo("[Planner] Waiting for low batteries...")
+            if ugv['state'] == "IDLE" or ugv['state'] == "MOVING":
+                # Check for higher priority target?
+                # For simplicity: If IDLE, look for target. 
+                # If MOVING, stick to target unless it charges itself (unlikely).
+                
+                if ugv['state'] == "IDLE":
+                    # Find best unassigned target
+                    scores = []
+                    for i in self.drone_states:
+                        if i in targeted_drones: continue
+                        s = self.get_priority_score(i, ugv['pos'])
+                        scores.append((i, s, self.drone_states[i]['bat']))
+                    scores.sort(key=lambda x: x[1], reverse=True)
+                    
+                    if scores:
+                        best_id, best_score, best_bat = scores[0]
+                        if best_score > 0.1 and best_bat < 90.0: # Threshold
+                            rospy.loginfo(f"[Planner] {uid} ASSIGNED -> Drone {best_id} (Bat: {best_bat:.1f}%)")
+                            ugv['target_id'] = best_id
+                            ugv['state'] = "MOVING"
+                            ugv['path'] = []
+                            targeted_drones.add(best_id)
+                
+                # Execute Moving Logic
+                if ugv['state'] == "MOVING":
+                    # Check if target is still valid (e.g. didn't fly away or get charged elsehow)
+                    # If target battery > 95, cancel
+                    tid = ugv['target_id']
+                    if self.drone_states[tid]['bat'] > 95.0:
+                         rospy.loginfo(f"[Planner] {uid} Target {tid} Full. Aborting.")
+                         ugv['target_id'] = None
+                         ugv['state'] = "IDLE"
+                         ugv['cmd_pub'].publish(Twist())
+                    else:
+                         self.navigate_ugv(uid)
 
-            best_id, best_score, best_bat = scores[0]
-            
-            # Switch Logic
-            # Tuned: React if Bat < 90% to show behavior quickly
-            if best_score > 0.1 and best_bat < 90.0:
-                if self.current_target_id != best_id:
-                     rospy.loginfo(f"[Planner] SWITCH target -> D{best_id}")
-                     self.current_target_id = best_id
-                     self.state = "MOVING"
-                     self.path = [] # Force Replan!
-            elif self.current_target_id is None:
-                 self.state = "IDLE"
-
-            if self.state == "MOVING":
-                self.navigate_to_target()
-            
-        elif self.state == "CHARGING":
-            if (rospy.Time.now() - self.last_charge_time).to_sec() >= 1.0:
-                rospy.loginfo(f"[Planner] Charged D{self.current_target_id}!")
-                self.charge_pubs[self.current_target_id].publish(100.0)
-                self.current_target_id = None
-                self.state = "IDLE"
-                self.path = []
+            elif ugv['state'] == "CHARGING":
+                if (rospy.Time.now() - ugv['last_charge_time']).to_sec() >= 1.0:
+                    tid = ugv['target_id']
+                    rospy.loginfo(f"[Planner] {uid} Charged D{tid}!")
+                    self.charge_pubs[tid].publish(100.0)
+                    ugv['target_id'] = None
+                    ugv['state'] = "IDLE"
+                    ugv['path'] = []
 
     def run(self):
         rospy.sleep(2.0)

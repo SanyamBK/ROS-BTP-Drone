@@ -21,11 +21,18 @@ class GridWaypointManager:
         rows = int(side_length / self.spacing) + 1
         cols = int(side_length / self.spacing) + 1
         
+        center_x = side_length / 2.0
+        center_y = side_length / 2.0
+
         for r in range(rows):
             y = min(r * self.spacing, side_length - 0.5)
             for c in range(cols):
                 x = min(c * self.spacing, side_length - 0.5)
-                self.waypoints.append((x, y))
+                
+                # Check if point is within circular radius
+                dist = math.hypot(x - center_x, y - center_y)
+                if dist <= coverage_radius:
+                    self.waypoints.append((x, y))
             
         self.total_points = len(self.waypoints)
         self.visited = [False] * self.total_points
@@ -137,6 +144,15 @@ class Algo3Hybrid:
                 # Do not re-evaluate to avoid "wiggling".
                 # Unless we are stuck or conflict.
                 pass
+
+    def force_mark_visited(self, drone_id):
+        """Force mark current target as visited (called after scanning pause)."""
+        tgt_idx = self.drone_targets[drone_id]
+        if tgt_idx != -1:
+            self.manager.mark_visited(tgt_idx, drone_id)
+            self.drone_targets[drone_id] = -1 # Clear target
+            return True
+        return False
 
     def _calculate_score(self, drone_id, wp_idx):
         """

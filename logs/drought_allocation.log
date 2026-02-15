@@ -1,5 +1,5 @@
 MULTI-DRONE FARMLAND DROUGHT ALLOCATION REPORT
-Generated (UTC): 2026-02-07 18:07:08
+Generated (UTC): 2026-02-15 12:19:04
 
 Drought probability model:
   * Weighted rainfall deficit, soil moisture deficit, vegetation stress, and heatwave intensity
@@ -18,14 +18,14 @@ area_5  Farmland 5              48.77%    0.66    0.00     0.00    0.02        0
 Drone-to-area allocation:
 Drone  Role       Assignment (segment)              Risk   Notes
 -----  ---------  -------------------------------  ------  ---------------------------
-0      explorer  area_1  Farmland 1           1/2          48.8%  Farmland 1 (red)
-1      explorer  area_1  Farmland 1           2/2          48.8%  Farmland 1 (red)
-2      explorer  area_2  Farmland 2           1/2          48.8%  Farmland 2 (blue)
-3      explorer  area_2  Farmland 2           2/2          48.8%  Farmland 2 (blue)
-4      explorer  area_3  Farmland 3           1/2          48.8%  Farmland 3 (yellow)
-5      explorer  area_3  Farmland 3           2/2          48.8%  Farmland 3 (yellow)
+0      explorer  area_3  Farmland 3           1/2          48.8%  Farmland 3 (yellow)
+1      explorer  area_3  Farmland 3           2/2          48.8%  Farmland 3 (yellow)
+2      explorer  area_2  Farmland 2           2/2          48.8%  Farmland 2 (blue)
+3      explorer  area_2  Farmland 2           1/2          48.8%  Farmland 2 (blue)
+4      explorer  area_1  Farmland 1           2/2          48.8%  Farmland 1 (red)
+5      explorer  area_1  Farmland 1           1/2          48.8%  Farmland 1 (red)
 6      explorer  area_4  Farmland 4           1/2          48.8%  Farmland 4 (purple)
 7      explorer  area_4  Farmland 4           2/2          48.8%  Farmland 4 (purple)
-8      explorer  area_5  Farmland 5           1/2          48.8%  Farmland 5 (orange)
-9      explorer  area_5  Farmland 5           2/2          48.8%  Farmland 5 (orange)
+8      explorer  area_5  Farmland 5           2/2          48.8%  Farmland 5 (orange)
+9      explorer  area_5  Farmland 5           1/2          48.8%  Farmland 5 (orange)
 10     backup    staging-area                 n/a       ---    Holding position
