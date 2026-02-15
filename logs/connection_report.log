@@ -25225,3 +25225,312 @@
 [2026-02-15T04:19:40.436001] [CENTRAL_TOWER] Received HI from DRONE_10. ACK sent.
 [2026-02-15T04:19:40.541148] [DRONE_8] ACK received from central
 [2026-02-15T04:19:40.541933] [CENTRAL_TOWER] Received HI from DRONE_8. ACK sent.
+[2026-02-15T04:26:17.364678] [UGVNet] UGV Communication Channels Open.
+[2026-02-15T04:26:17.401234] [DroneNet] Ready with 11 drones
+[2026-02-15T04:26:17.425460] [CENTRAL_TOWER] Online. Waiting for drone fleet to deploy...
+[2026-02-15T04:26:39.037709] [CENTRAL_TOWER] Fleet Deployed. Starting 3-Way Handshake (Period: 10s)...
+[2026-02-15T04:26:49.245711] [CENTRAL_TOWER] >>> Broadcasting: HELLO
+[2026-02-15T04:26:49.246282] [DroneNet] HELLO received from central
+[2026-02-15T04:26:49.246761] [UGVNet] HELLO received from central
+[2026-02-15T04:26:49.388455] [DRONE_7] Heard HELLO. Sending HI...
+[2026-02-15T04:26:49.388881] [CENTRAL_TOWER] HI received from DRONE_7 (queued for ACK)
+[2026-02-15T04:26:49.472504] [CENTRAL_TOWER] Received HI from DRONE_7. ACK sent.
+[2026-02-15T04:26:49.472933] [DRONE_7] Connection Established! (ACK Received)
+[2026-02-15T04:26:49.473221] [DRONE_7] ACK received from central
+[2026-02-15T04:26:49.575747] [DRONE_6] Heard HELLO. Sending HI...
+[2026-02-15T04:26:49.577379] [CENTRAL_TOWER] HI received from DRONE_6 (queued for ACK)
+[2026-02-15T04:26:49.658658] [UGV_2] Heard HELLO. Sending HI...
+[2026-02-15T04:26:49.658932] [CENTRAL_TOWER] HI received from UGV_2 (queued for ACK)
+[2026-02-15T04:26:49.676574] [CENTRAL_TOWER] Received HI from DRONE_6. ACK sent.
+[2026-02-15T04:26:49.676797] [DRONE_6] Connection Established! (ACK Received)
+[2026-02-15T04:26:49.676887] [DRONE_6] ACK received from central
+[2026-02-15T04:26:49.770590] [CENTRAL_TOWER] Received HI from UGV_2. ACK sent.
+[2026-02-15T04:26:49.773062] [UGV_2] Connection Established. (ACK Received)
+[2026-02-15T04:26:49.773141] [UGV_2] ACK received from central
+[2026-02-15T04:26:50.044750] [DRONE_2] Heard HELLO. Sending HI...
+[2026-02-15T04:26:50.044995] [CENTRAL_TOWER] HI received from DRONE_2 (queued for ACK)
+[2026-02-15T04:26:50.076528] [CENTRAL_TOWER] Received HI from DRONE_2. ACK sent.
+[2026-02-15T04:26:50.079573] [DRONE_2] Connection Established! (ACK Received)
+[2026-02-15T04:26:50.079685] [DRONE_2] ACK received from central
+[2026-02-15T04:26:50.126339] [DRONE_9] Heard HELLO. Sending HI...
+[2026-02-15T04:26:50.126567] [CENTRAL_TOWER] HI received from DRONE_9 (queued for ACK)
+[2026-02-15T04:26:50.177641] [CENTRAL_TOWER] Received HI from DRONE_9. ACK sent.
+[2026-02-15T04:26:50.178047] [DRONE_9] Connection Established! (ACK Received)
+[2026-02-15T04:26:50.178142] [DRONE_9] ACK received from central
+[2026-02-15T04:26:50.320070] [DRONE_8] Heard HELLO. Sending HI...
+[2026-02-15T04:26:50.320377] [CENTRAL_TOWER] HI received from DRONE_8 (queued for ACK)
+[2026-02-15T04:26:50.392008] [CENTRAL_TOWER] Received HI from DRONE_8. ACK sent.
+[2026-02-15T04:26:50.392248] [DRONE_8] Connection Established! (ACK Received)
+[2026-02-15T04:26:50.392371] [DRONE_8] ACK received from central
+[2026-02-15T04:26:50.481798] [UGV_1] Heard HELLO. Sending HI...
+[2026-02-15T04:26:50.482127] [CENTRAL_TOWER] HI received from UGV_1 (queued for ACK)
+[2026-02-15T04:26:50.500011] [UGV_1] Connection Established. (ACK Received)
+[2026-02-15T04:26:50.500108] [UGV_1] ACK received from central
+[2026-02-15T04:26:50.500317] [CENTRAL_TOWER] Received HI from UGV_1. ACK sent.
+[2026-02-15T04:26:50.661364] [DRONE_0] Heard HELLO. Sending HI...
+[2026-02-15T04:26:50.661709] [CENTRAL_TOWER] HI received from DRONE_0 (queued for ACK)
+[2026-02-15T04:26:50.697742] [CENTRAL_TOWER] Received HI from DRONE_0. ACK sent.
+[2026-02-15T04:26:50.698161] [DRONE_0] Connection Established! (ACK Received)
+[2026-02-15T04:26:50.698229] [DRONE_0] ACK received from central
+[2026-02-15T04:26:50.829477] [DRONE_3] Heard HELLO. Sending HI...
+[2026-02-15T04:26:50.829720] [CENTRAL_TOWER] HI received from DRONE_3 (queued for ACK)
+[2026-02-15T04:26:50.900040] [DRONE_3] Connection Established! (ACK Received)
+[2026-02-15T04:26:50.900124] [DRONE_3] ACK received from central
+[2026-02-15T04:26:50.900898] [CENTRAL_TOWER] Received HI from DRONE_3. ACK sent.
+[2026-02-15T04:26:51.015831] [DRONE_10] Heard HELLO. Sending HI...
+[2026-02-15T04:26:51.016091] [CENTRAL_TOWER] HI received from DRONE_10 (queued for ACK)
+[2026-02-15T04:26:51.110989] [CENTRAL_TOWER] Received HI from DRONE_10. ACK sent.
+[2026-02-15T04:26:51.112696] [DRONE_10] Connection Established! (ACK Received)
+[2026-02-15T04:26:51.112783] [DRONE_10] ACK received from central
+[2026-02-15T04:26:51.154054] [DRONE_4] Heard HELLO. Sending HI...
+[2026-02-15T04:26:51.154286] [CENTRAL_TOWER] HI received from DRONE_4 (queued for ACK)
+[2026-02-15T04:26:51.212433] [CENTRAL_TOWER] Received HI from DRONE_4. ACK sent.
+[2026-02-15T04:26:51.213558] [DRONE_4] Connection Established! (ACK Received)
+[2026-02-15T04:26:51.213648] [DRONE_4] ACK received from central
+[2026-02-15T04:26:51.217246] [DRONE_5] Heard HELLO. Sending HI...
+[2026-02-15T04:26:51.217498] [CENTRAL_TOWER] HI received from DRONE_5 (queued for ACK)
+[2026-02-15T04:26:51.299975] [DRONE_1] Heard HELLO. Sending HI...
+[2026-02-15T04:26:51.300290] [CENTRAL_TOWER] HI received from DRONE_1 (queued for ACK)
+[2026-02-15T04:26:51.319596] [CENTRAL_TOWER] Received HI from DRONE_5. ACK sent.
+[2026-02-15T04:26:51.319835] [DRONE_5] Connection Established! (ACK Received)
+[2026-02-15T04:26:51.319908] [DRONE_5] ACK received from central
+[2026-02-15T04:26:51.426496] [CENTRAL_TOWER] Received HI from DRONE_1. ACK sent.
+[2026-02-15T04:26:51.426539] [DRONE_1] Connection Established! (ACK Received)
+[2026-02-15T04:26:51.426606] [DRONE_1] ACK received from central
+[2026-02-15T04:26:59.534017] [CENTRAL_TOWER] >>> Broadcasting: HELLO
+[2026-02-15T04:26:59.534483] [DroneNet] HELLO received from central
+[2026-02-15T04:26:59.534859] [UGVNet] HELLO received from central
+[2026-02-15T04:26:59.655596] [DRONE_10] Heard HELLO. Sending HI...
+[2026-02-15T04:26:59.656109] [CENTRAL_TOWER] HI received from DRONE_10 (queued for ACK)
+[2026-02-15T04:26:59.729310] [DRONE_5] Heard HELLO. Sending HI...
+[2026-02-15T04:26:59.730143] [CENTRAL_TOWER] HI received from DRONE_5 (queued for ACK)
+[2026-02-15T04:26:59.745081] [DRONE_10] ACK received from central
+[2026-02-15T04:26:59.747272] [CENTRAL_TOWER] Received HI from DRONE_10. ACK sent.
+[2026-02-15T04:26:59.764747] [DRONE_3] Heard HELLO. Sending HI...
+[2026-02-15T04:26:59.765061] [CENTRAL_TOWER] HI received from DRONE_3 (queued for ACK)
+[2026-02-15T04:26:59.849530] [DRONE_5] ACK received from central
+[2026-02-15T04:26:59.850509] [CENTRAL_TOWER] Received HI from DRONE_5. ACK sent.
+[2026-02-15T04:26:59.959267] [CENTRAL_TOWER] Received HI from DRONE_3. ACK sent.
+[2026-02-15T04:26:59.962599] [DRONE_3] ACK received from central
+[2026-02-15T04:27:00.248296] [DRONE_6] Heard HELLO. Sending HI...
+[2026-02-15T04:27:00.248645] [CENTRAL_TOWER] HI received from DRONE_6 (queued for ACK)
+[2026-02-15T04:27:00.258450] [DRONE_6] ACK received from central
+[2026-02-15T04:27:00.259543] [CENTRAL_TOWER] Received HI from DRONE_6. ACK sent.
+[2026-02-15T04:27:00.410917] [UGV_2] Heard HELLO. Sending HI...
+[2026-02-15T04:27:00.411169] [CENTRAL_TOWER] HI received from UGV_2 (queued for ACK)
+[2026-02-15T04:27:00.465081] [UGV_2] ACK received from central
+[2026-02-15T04:27:00.465824] [CENTRAL_TOWER] Received HI from UGV_2. ACK sent.
+[2026-02-15T04:27:00.499851] [DRONE_9] Heard HELLO. Sending HI...
+[2026-02-15T04:27:00.500164] [CENTRAL_TOWER] HI received from DRONE_9 (queued for ACK)
+[2026-02-15T04:27:00.569391] [DRONE_9] ACK received from central
+[2026-02-15T04:27:00.570762] [CENTRAL_TOWER] Received HI from DRONE_9. ACK sent.
+[2026-02-15T04:27:00.662846] [DRONE_1] Heard HELLO. Sending HI...
+[2026-02-15T04:27:00.663115] [CENTRAL_TOWER] HI received from DRONE_1 (queued for ACK)
+[2026-02-15T04:27:00.674975] [DRONE_1] ACK received from central
+[2026-02-15T04:27:00.676289] [CENTRAL_TOWER] Received HI from DRONE_1. ACK sent.
+[2026-02-15T04:27:00.796010] [DRONE_8] Heard HELLO. Sending HI...
+[2026-02-15T04:27:00.796634] [CENTRAL_TOWER] HI received from DRONE_8 (queued for ACK)
+[2026-02-15T04:27:00.881446] [DRONE_8] ACK received from central
+[2026-02-15T04:27:00.881896] [CENTRAL_TOWER] Received HI from DRONE_8. ACK sent.
+[2026-02-15T04:27:01.046884] [UGV_1] Heard HELLO. Sending HI...
+[2026-02-15T04:27:01.047616] [CENTRAL_TOWER] HI received from UGV_1 (queued for ACK)
+[2026-02-15T04:27:01.086157] [UGV_1] ACK received from central
+[2026-02-15T04:27:01.086783] [CENTRAL_TOWER] Received HI from UGV_1. ACK sent.
+[2026-02-15T04:27:01.412152] [DRONE_2] Heard HELLO. Sending HI...
+[2026-02-15T04:27:01.412406] [CENTRAL_TOWER] HI received from DRONE_2 (queued for ACK)
+[2026-02-15T04:27:01.441340] [DRONE_7] Heard HELLO. Sending HI...
+[2026-02-15T04:27:01.441850] [CENTRAL_TOWER] HI received from DRONE_7 (queued for ACK)
+[2026-02-15T04:27:01.506651] [DRONE_2] ACK received from central
+[2026-02-15T04:27:01.507796] [CENTRAL_TOWER] Received HI from DRONE_2. ACK sent.
+[2026-02-15T04:27:01.528891] [DRONE_0] Heard HELLO. Sending HI...
+[2026-02-15T04:27:01.529535] [CENTRAL_TOWER] HI received from DRONE_0 (queued for ACK)
+[2026-02-15T04:27:01.620662] [DRONE_7] ACK received from central
+[2026-02-15T04:27:01.621346] [CENTRAL_TOWER] Received HI from DRONE_7. ACK sent.
+[2026-02-15T04:27:01.622925] [DRONE_4] Heard HELLO. Sending HI...
+[2026-02-15T04:27:01.623183] [CENTRAL_TOWER] HI received from DRONE_4 (queued for ACK)
+[2026-02-15T04:27:01.722592] [DRONE_0] ACK received from central
+[2026-02-15T04:27:01.723105] [CENTRAL_TOWER] Received HI from DRONE_0. ACK sent.
+[2026-02-15T04:27:01.821968] [DRONE_4] ACK received from central
+[2026-02-15T04:27:01.822833] [CENTRAL_TOWER] Received HI from DRONE_4. ACK sent.
+[2026-02-15T04:27:09.828616] [CENTRAL_TOWER] >>> Broadcasting: HELLO
+[2026-02-15T04:27:09.829123] [DroneNet] HELLO received from central
+[2026-02-15T04:27:09.829719] [UGVNet] HELLO received from central
+[2026-02-15T04:27:10.136894] [DRONE_9] Heard HELLO. Sending HI...
+[2026-02-15T04:27:10.137249] [CENTRAL_TOWER] HI received from DRONE_9 (queued for ACK)
+[2026-02-15T04:27:10.141380] [DRONE_7] Heard HELLO. Sending HI...
+[2026-02-15T04:27:10.142028] [CENTRAL_TOWER] HI received from DRONE_7 (queued for ACK)
+[2026-02-15T04:27:10.238116] [CENTRAL_TOWER] Received HI from DRONE_9. ACK sent.
+[2026-02-15T04:27:10.238782] [DRONE_9] ACK received from central
+[2026-02-15T04:27:10.349991] [DRONE_7] ACK received from central
+[2026-02-15T04:27:10.351210] [CENTRAL_TOWER] Received HI from DRONE_7. ACK sent.
+[2026-02-15T04:27:10.581836] [DRONE_4] Heard HELLO. Sending HI...
+[2026-02-15T04:27:10.582125] [CENTRAL_TOWER] HI received from DRONE_4 (queued for ACK)
+[2026-02-15T04:27:10.658125] [CENTRAL_TOWER] Received HI from DRONE_4. ACK sent.
+[2026-02-15T04:27:10.658157] [DRONE_4] ACK received from central
+[2026-02-15T04:27:10.677710] [UGV_2] Heard HELLO. Sending HI...
+[2026-02-15T04:27:10.677982] [CENTRAL_TOWER] HI received from UGV_2 (queued for ACK)
+[2026-02-15T04:27:10.711530] [DRONE_2] Heard HELLO. Sending HI...
+[2026-02-15T04:27:10.712504] [CENTRAL_TOWER] HI received from DRONE_2 (queued for ACK)
+[2026-02-15T04:27:10.761777] [UGV_2] ACK received from central
+[2026-02-15T04:27:10.763028] [CENTRAL_TOWER] Received HI from UGV_2. ACK sent.
+[2026-02-15T04:27:10.807501] [DRONE_10] Heard HELLO. Sending HI...
+[2026-02-15T04:27:10.807981] [CENTRAL_TOWER] HI received from DRONE_10 (queued for ACK)
+[2026-02-15T04:27:10.880522] [DRONE_2] ACK received from central
+[2026-02-15T04:27:10.881458] [CENTRAL_TOWER] Received HI from DRONE_2. ACK sent.
+[2026-02-15T04:27:10.991372] [DRONE_10] ACK received from central
+[2026-02-15T04:27:10.992674] [CENTRAL_TOWER] Received HI from DRONE_10. ACK sent.
+[2026-02-15T04:27:10.998777] [DRONE_6] Heard HELLO. Sending HI...
+[2026-02-15T04:27:10.999572] [CENTRAL_TOWER] HI received from DRONE_6 (queued for ACK)
+[2026-02-15T04:27:11.089723] [CENTRAL_TOWER] Received HI from DRONE_6. ACK sent.
+[2026-02-15T04:27:11.090127] [DRONE_6] ACK received from central
+[2026-02-15T04:27:11.170511] [DRONE_8] Heard HELLO. Sending HI...
+[2026-02-15T04:27:11.170735] [CENTRAL_TOWER] HI received from DRONE_8 (queued for ACK)
+[2026-02-15T04:27:11.186683] [DRONE_8] ACK received from central
+[2026-02-15T04:27:11.188467] [CENTRAL_TOWER] Received HI from DRONE_8. ACK sent.
+[2026-02-15T04:27:11.282389] [DRONE_3] Heard HELLO. Sending HI...
+[2026-02-15T04:27:11.282815] [CENTRAL_TOWER] HI received from DRONE_3 (queued for ACK)
+[2026-02-15T04:27:11.284489] [DRONE_0] Heard HELLO. Sending HI...
+[2026-02-15T04:27:11.287923] [CENTRAL_TOWER] HI received from DRONE_0 (queued for ACK)
+[2026-02-15T04:27:11.290849] [DRONE_3] ACK received from central
+[2026-02-15T04:27:11.291910] [CENTRAL_TOWER] Received HI from DRONE_3. ACK sent.
+[2026-02-15T04:27:11.358280] [UGV_1] Heard HELLO. Sending HI...
+[2026-02-15T04:27:11.358495] [CENTRAL_TOWER] HI received from UGV_1 (queued for ACK)
+[2026-02-15T04:27:11.394940] [DRONE_0] ACK received from central
+[2026-02-15T04:27:11.396548] [CENTRAL_TOWER] Received HI from DRONE_0. ACK sent.
+[2026-02-15T04:27:11.419283] [DRONE_5] Heard HELLO. Sending HI...
+[2026-02-15T04:27:11.419624] [CENTRAL_TOWER] HI received from DRONE_5 (queued for ACK)
+[2026-02-15T04:27:11.426813] [DRONE_1] Heard HELLO. Sending HI...
+[2026-02-15T04:27:11.427048] [CENTRAL_TOWER] HI received from DRONE_1 (queued for ACK)
+[2026-02-15T04:27:11.490901] [UGV_1] ACK received from central
+[2026-02-15T04:27:11.493483] [CENTRAL_TOWER] Received HI from UGV_1. ACK sent.
+[2026-02-15T04:27:11.589928] [DRONE_5] ACK received from central
+[2026-02-15T04:27:11.590778] [CENTRAL_TOWER] Received HI from DRONE_5. ACK sent.
+[2026-02-15T04:27:11.692146] [DRONE_1] ACK received from central
+[2026-02-15T04:27:11.693417] [CENTRAL_TOWER] Received HI from DRONE_1. ACK sent.
+[2026-02-15T04:31:06.402701] [CENTRAL_TOWER] Online. Waiting for drone fleet to deploy...
+[2026-02-15T04:31:06.486012] [DroneNet] Ready with 11 drones
+[2026-02-15T04:31:06.500652] [UGVNet] UGV Communication Channels Open.
+[2026-02-15T04:31:28.406027] [CENTRAL_TOWER] Fleet Deployed. Starting 3-Way Handshake (Period: 10s)...
+[2026-02-15T04:31:38.559987] [CENTRAL_TOWER] >>> Broadcasting: HELLO
+[2026-02-15T04:31:38.560223] [DroneNet] HELLO received from central
+[2026-02-15T04:31:38.560800] [UGVNet] HELLO received from central
+[2026-02-15T04:31:38.980091] [DRONE_4] Heard HELLO. Sending HI...
+[2026-02-15T04:31:38.980315] [CENTRAL_TOWER] HI received from DRONE_4 (queued for ACK)
+[2026-02-15T04:31:39.065260] [DRONE_8] Heard HELLO. Sending HI...
+[2026-02-15T04:31:39.065808] [CENTRAL_TOWER] HI received from DRONE_8 (queued for ACK)
+[2026-02-15T04:31:39.069298] [CENTRAL_TOWER] Received HI from DRONE_4. ACK sent.
+[2026-02-15T04:31:39.069918] [DRONE_4] Connection Established! (ACK Received)
+[2026-02-15T04:31:39.069991] [DRONE_4] ACK received from central
+[2026-02-15T04:31:39.171875] [CENTRAL_TOWER] Received HI from DRONE_8. ACK sent.
+[2026-02-15T04:31:39.172167] [DRONE_8] Connection Established! (ACK Received)
+[2026-02-15T04:31:39.172231] [DRONE_8] ACK received from central
+[2026-02-15T04:31:39.327795] [UGV_2] Heard HELLO. Sending HI...
+[2026-02-15T04:31:39.328124] [CENTRAL_TOWER] HI received from UGV_2 (queued for ACK)
+[2026-02-15T04:31:39.343131] [UGV_1] Heard HELLO. Sending HI...
+[2026-02-15T04:31:39.343338] [CENTRAL_TOWER] HI received from UGV_1 (queued for ACK)
+[2026-02-15T04:31:39.378038] [CENTRAL_TOWER] Received HI from UGV_2. ACK sent.
+[2026-02-15T04:31:39.378789] [UGV_2] Connection Established. (ACK Received)
+[2026-02-15T04:31:39.378869] [UGV_2] ACK received from central
+[2026-02-15T04:31:39.476950] [CENTRAL_TOWER] Received HI from UGV_1. ACK sent.
+[2026-02-15T04:31:39.477257] [UGV_1] Connection Established. (ACK Received)
+[2026-02-15T04:31:39.477324] [UGV_1] ACK received from central
+[2026-02-15T04:31:39.831280] [DRONE_5] Heard HELLO. Sending HI...
+[2026-02-15T04:31:39.831596] [CENTRAL_TOWER] HI received from DRONE_5 (queued for ACK)
+[2026-02-15T04:31:39.875887] [DRONE_6] Heard HELLO. Sending HI...
+[2026-02-15T04:31:39.877179] [CENTRAL_TOWER] HI received from DRONE_6 (queued for ACK)
+[2026-02-15T04:31:39.890143] [CENTRAL_TOWER] Received HI from DRONE_5. ACK sent.
+[2026-02-15T04:31:39.890295] [DRONE_5] Connection Established! (ACK Received)
+[2026-02-15T04:31:39.890362] [DRONE_5] ACK received from central
+[2026-02-15T04:31:39.989154] [DRONE_6] Connection Established! (ACK Received)
+[2026-02-15T04:31:39.989195] [CENTRAL_TOWER] Received HI from DRONE_6. ACK sent.
+[2026-02-15T04:31:39.989242] [DRONE_6] ACK received from central
+[2026-02-15T04:31:40.191941] [DRONE_10] Heard HELLO. Sending HI...
+[2026-02-15T04:31:40.192156] [CENTRAL_TOWER] HI received from DRONE_10 (queued for ACK)
+[2026-02-15T04:31:40.222046] [DRONE_3] Heard HELLO. Sending HI...
+[2026-02-15T04:31:40.222255] [CENTRAL_TOWER] HI received from DRONE_3 (queued for ACK)
+[2026-02-15T04:31:40.289235] [DRONE_10] Connection Established! (ACK Received)
+[2026-02-15T04:31:40.289315] [DRONE_10] ACK received from central
+[2026-02-15T04:31:40.290049] [CENTRAL_TOWER] Received HI from DRONE_10. ACK sent.
+[2026-02-15T04:31:40.325484] [DRONE_9] Heard HELLO. Sending HI...
+[2026-02-15T04:31:40.325668] [CENTRAL_TOWER] HI received from DRONE_9 (queued for ACK)
+[2026-02-15T04:31:40.362527] [DRONE_1] Heard HELLO. Sending HI...
+[2026-02-15T04:31:40.362749] [CENTRAL_TOWER] HI received from DRONE_1 (queued for ACK)
+[2026-02-15T04:31:40.384999] [DRONE_0] Heard HELLO. Sending HI...
+[2026-02-15T04:31:40.385813] [CENTRAL_TOWER] HI received from DRONE_0 (queued for ACK)
+[2026-02-15T04:31:40.389174] [DRONE_7] Heard HELLO. Sending HI...
+[2026-02-15T04:31:40.389523] [CENTRAL_TOWER] HI received from DRONE_7 (queued for ACK)
+[2026-02-15T04:31:40.394433] [DRONE_3] Connection Established! (ACK Received)
+[2026-02-15T04:31:40.394549] [DRONE_3] ACK received from central
+[2026-02-15T04:31:40.394711] [CENTRAL_TOWER] Received HI from DRONE_3. ACK sent.
+[2026-02-15T04:31:40.416019] [DRONE_2] Heard HELLO. Sending HI...
+[2026-02-15T04:31:40.416487] [CENTRAL_TOWER] HI received from DRONE_2 (queued for ACK)
+[2026-02-15T04:31:40.502839] [CENTRAL_TOWER] Received HI from DRONE_9. ACK sent.
+[2026-02-15T04:31:40.502971] [DRONE_9] Connection Established! (ACK Received)
+[2026-02-15T04:31:40.503050] [DRONE_9] ACK received from central
+[2026-02-15T04:31:40.604301] [CENTRAL_TOWER] Received HI from DRONE_1. ACK sent.
+[2026-02-15T04:31:40.604535] [DRONE_1] Connection Established! (ACK Received)
+[2026-02-15T04:31:40.604614] [DRONE_1] ACK received from central
+[2026-02-15T04:31:40.702134] [CENTRAL_TOWER] Received HI from DRONE_0. ACK sent.
+[2026-02-15T04:31:40.702616] [DRONE_0] Connection Established! (ACK Received)
+[2026-02-15T04:31:40.702699] [DRONE_0] ACK received from central
+[2026-02-15T04:31:40.804549] [DRONE_7] Connection Established! (ACK Received)
+[2026-02-15T04:31:40.804624] [CENTRAL_TOWER] Received HI from DRONE_7. ACK sent.
+[2026-02-15T04:31:40.804651] [DRONE_7] ACK received from central
+[2026-02-15T04:31:40.906945] [CENTRAL_TOWER] Received HI from DRONE_2. ACK sent.
+[2026-02-15T04:31:40.907318] [DRONE_2] Connection Established! (ACK Received)
+[2026-02-15T04:31:40.907405] [DRONE_2] ACK received from central
+[2026-02-15T04:31:48.706524] [CENTRAL_TOWER] >>> Broadcasting: HELLO
+[2026-02-15T04:31:48.706899] [DroneNet] HELLO received from central
+[2026-02-15T04:31:48.707165] [UGVNet] HELLO received from central
+[2026-02-15T04:31:48.833296] [DRONE_8] Heard HELLO. Sending HI...
+[2026-02-15T04:31:48.834108] [CENTRAL_TOWER] HI received from DRONE_8 (queued for ACK)
+[2026-02-15T04:31:48.917318] [DRONE_8] ACK received from central
+[2026-02-15T04:31:48.918043] [CENTRAL_TOWER] Received HI from DRONE_8. ACK sent.
+[2026-02-15T04:31:49.195634] [DRONE_4] Heard HELLO. Sending HI...
+[2026-02-15T04:31:49.196127] [CENTRAL_TOWER] HI received from DRONE_4 (queued for ACK)
+[2026-02-15T04:31:49.223930] [DRONE_4] ACK received from central
+[2026-02-15T04:31:49.223968] [CENTRAL_TOWER] Received HI from DRONE_4. ACK sent.
+[2026-02-15T04:31:49.296059] [DRONE_10] Heard HELLO. Sending HI...
+[2026-02-15T04:31:49.297036] [CENTRAL_TOWER] HI received from DRONE_10 (queued for ACK)
+[2026-02-15T04:31:49.326673] [DRONE_10] ACK received from central
+[2026-02-15T04:31:49.327598] [CENTRAL_TOWER] Received HI from DRONE_10. ACK sent.
+[2026-02-15T04:31:49.357638] [DRONE_3] Heard HELLO. Sending HI...
+[2026-02-15T04:31:49.357900] [CENTRAL_TOWER] HI received from DRONE_3 (queued for ACK)
+[2026-02-15T04:31:49.401345] [UGV_2] Heard HELLO. Sending HI...
+[2026-02-15T04:31:49.401971] [CENTRAL_TOWER] HI received from UGV_2 (queued for ACK)
+[2026-02-15T04:31:49.431231] [DRONE_3] ACK received from central
+[2026-02-15T04:31:49.432695] [CENTRAL_TOWER] Received HI from DRONE_3. ACK sent.
+[2026-02-15T04:31:49.537730] [UGV_2] ACK received from central
+[2026-02-15T04:31:49.538820] [CENTRAL_TOWER] Received HI from UGV_2. ACK sent.
+[2026-02-15T04:31:49.639922] [DRONE_0] Heard HELLO. Sending HI...
+[2026-02-15T04:31:49.640237] [CENTRAL_TOWER] HI received from DRONE_0 (queued for ACK)
+[2026-02-15T04:31:49.733632] [DRONE_0] ACK received from central
+[2026-02-15T04:31:49.734962] [CENTRAL_TOWER] Received HI from DRONE_0. ACK sent.
+[2026-02-15T04:31:49.789783] [DRONE_1] Heard HELLO. Sending HI...
+[2026-02-15T04:31:49.790383] [CENTRAL_TOWER] HI received from DRONE_1 (queued for ACK)
+[2026-02-15T04:31:49.836961] [DRONE_1] ACK received from central
+[2026-02-15T04:31:49.837753] [CENTRAL_TOWER] Received HI from DRONE_1. ACK sent.
+[2026-02-15T04:31:49.888874] [UGV_1] Heard HELLO. Sending HI...
+[2026-02-15T04:31:49.889123] [CENTRAL_TOWER] HI received from UGV_1 (queued for ACK)
+[2026-02-15T04:31:49.946515] [UGV_1] ACK received from central
+[2026-02-15T04:31:49.947742] [CENTRAL_TOWER] Received HI from UGV_1. ACK sent.
+[2026-02-15T04:31:50.049664] [DRONE_6] Heard HELLO. Sending HI...
+[2026-02-15T04:31:50.049957] [CENTRAL_TOWER] HI received from DRONE_6 (queued for ACK)
+[2026-02-15T04:31:50.086658] [DRONE_7] Heard HELLO. Sending HI...
+[2026-02-15T04:31:50.086883] [CENTRAL_TOWER] HI received from DRONE_7 (queued for ACK)
+[2026-02-15T04:31:50.147033] [DRONE_9] Heard HELLO. Sending HI...
+[2026-02-15T04:31:50.149836] [CENTRAL_TOWER] HI received from DRONE_9 (queued for ACK)
+[2026-02-15T04:31:50.151257] [DRONE_6] ACK received from central
+[2026-02-15T04:31:50.152579] [CENTRAL_TOWER] Received HI from DRONE_6. ACK sent.
+[2026-02-15T04:31:50.259461] [DRONE_7] ACK received from central
+[2026-02-15T04:31:50.261003] [CENTRAL_TOWER] Received HI from DRONE_7. ACK sent.
+[2026-02-15T04:31:50.366741] [DRONE_9] ACK received from central
+[2026-02-15T04:31:50.366645] [CENTRAL_TOWER] Received HI from DRONE_9. ACK sent.
+[2026-02-15T04:31:50.467358] [DRONE_5] Heard HELLO. Sending HI...
+[2026-02-15T04:31:50.467613] [CENTRAL_TOWER] HI received from DRONE_5 (queued for ACK)
+[2026-02-15T04:31:50.469284] [DRONE_5] ACK received from central
+[2026-02-15T04:31:50.470441] [CENTRAL_TOWER] Received HI from DRONE_5. ACK sent.
+[2026-02-15T04:31:50.752121] [DRONE_2] Heard HELLO. Sending HI...
+[2026-02-15T04:31:50.752325] [CENTRAL_TOWER] HI received from DRONE_2 (queued for ACK)
+[2026-02-15T04:31:50.777108] [DRONE_2] ACK received from central
+[2026-02-15T04:31:50.778347] [CENTRAL_TOWER] Received HI from DRONE_2. ACK sent.

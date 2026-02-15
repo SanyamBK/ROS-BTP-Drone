@@ -296,7 +296,7 @@ class AreaCoverageController:
         # Initialize Grid Manager & Hybrid Logic
         self.grid_manager = GridWaypointManager(
             side_length=self.side_length,
-            coverage_radius=1.5,
+            coverage_radius=self.side_length / 2.0,
             origin_x=self.origin_x,
             origin_y=self.origin_y
         )
