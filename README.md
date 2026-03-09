@@ -67,12 +67,12 @@ This system now runs **Algorithm 3 (Hybrid GOMWC + LERR + Shake)** for optimized
 - **Auto-Shutdown**: Simulation automatically terminates 5 seconds after all exploration missions are complete, facilitating batch experiments.
 - **Centralized Communication**: A static "Central Tower" node coordinates the fleet using a robust **Asynchronous 3-Way Handshake** (Hello → Hi → Queue → Ack). The tower processes connection requests via a 10Hz queue to simulate realistic processing latency.
 - **Connection Logging**: All communication events (HELLO broadcasts, HI responses, ACK confirmations) are timestamped and logged to `logs/connection_report.log`
-- **Dynamic Vision (Swept Area)**: Coverage is calculated in real-time based on the "swept area" of the drone's moving field-of-view, simulating realistic sensor footprint data collection.
-- **3D Flight Dynamics**: Drones operate at variable altitudes (3.0m - 3.5m) to maintain realistic vertical separation and diverse sensor perspectives.
-- **Waypoint Grid Density**: The system automatically adjusts waypoint density based on area size:
-    - **12m Areas** (Soybean, Vegetables): 81 Waypoints (9x9 grid).
-    - **10m Areas** (Wheat, Maize, Barley): 49 Waypoints (7x7 grid).
-    - *This ensures consistent coverage density regardless of farm size.*
+- **Dynamic Vision (Swept Area)**: Coverage is calculated in real-time based on the "swept area" of the drone's moving field-of-view. The camera FOV is physically modeled as a cone with a 0.625 radius-to-height scaling ratio, ensuring the logical coverage perfectly matches the visual footprint in Gazebo.
+- **3D Flight Dynamics**: Drones operate at stable staggered altitudes (2.0m - 3.0m) to maintain realistic vertical separation and avoid downwash. Perfect altitude holding is achieved via zero-gravity planar simulation.
+- **Waypoint Grid Density**: The system automatically generates a rigorous scanning grid for each circular area:
+    - Points are distributed exactly every **1.5 meters**.
+    - Waypoints strictly outside the circular defined farm boundary are rejected.
+    - 100% of these 1.5m waypoints must be covered by a drone's camera cone to complete the mission.
 
 ## 📚 Research Foundation
 The system's architecture is built upon the following key research papers:

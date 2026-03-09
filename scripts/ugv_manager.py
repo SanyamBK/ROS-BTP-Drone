@@ -71,7 +71,7 @@ class MobileRechargingUGV:
         # In a real sim we'd use a service or collision detection.
         # Here we subscribe to drone odoms dynamically.
         self.drone_positions = {}
-        self.num_drones = 18
+        self.num_drones = rospy.get_param('~num_drones', 11)
         # Subscribe to drone battery levels
         self.drone_batteries = {}
         for i in range(self.num_drones):

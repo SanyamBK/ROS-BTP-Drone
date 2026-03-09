@@ -401,7 +401,7 @@ class AreaCoverageController:
 
     def is_complete(self):
         v, t, pct = self.grid_manager.get_progress_stats()
-        return pct >= 99.9
+        return pct >= 100.0
 
     def get_progress(self):
         v, t, pct = self.grid_manager.get_progress_stats()
@@ -453,7 +453,7 @@ class DroneExplorer:
         
         # Assign altitude (1.5m - 2.0m as requested)
         # Staggered to prevent downwash: 3.0, 3.5, 4.0 based on ID
-        self.flight_altitude = 3.0 + (self.drone_id % 3) * 0.5
+        self.flight_altitude = 2.0 + (self.drone_id % 3) * 0.5
         
         # State:
         self.waiting_for_charge = False
@@ -975,17 +975,31 @@ class BackupDrone:
             dy = self.start_pos['y'] - self.current_pose.position.y
             distance = sqrt(dx*dx + dy*dy)
             
+            # Altitude hold logic
+            target_altitude = 2.0 + (self.drone_id % 3) * 0.5
+            dz = target_altitude - self.current_pose.position.z
+            z_cmd = max(-0.5, min(0.5, 2.0 * dz))
+            
+            cmd = Twist()
+            cmd.linear.z = z_cmd
+            
             # If drifted too far from start, return to position
             if distance > 1.0:  # More than 1m from start
-                cmd = Twist()
                 cmd.linear.x = min(0.5, distance * 0.3)
                 angle = atan2(dy, dx)
-                cmd.angular.z = angle * 0.5
-                self.cmd_vel_pub.publish(cmd)
-            else:
-                # Stay still
-                cmd = Twist()
-                self.cmd_vel_pub.publish(cmd)
+                
+                # Calculate yaw error to steer towards target
+                q = self.current_pose.orientation
+                import tf.transformations as tf_trans
+                (roll, pitch, yaw) = tf_trans.euler_from_quaternion([q.x, q.y, q.z, q.w])
+                yaw_err = angle - yaw
+                import math
+                while yaw_err > math.pi: yaw_err -= 2*math.pi
+                while yaw_err < -math.pi: yaw_err += 2*math.pi
+                
+                cmd.angular.z = max(-0.5, min(0.5, yaw_err))
+                
+            self.cmd_vel_pub.publish(cmd)
 
             if self.result_aggregator and self.current_pose is not None and not rospy.is_shutdown():
                 summary = {

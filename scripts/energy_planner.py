@@ -25,7 +25,7 @@ class EnergyAwarePlanner:
         rospy.wait_for_service('/gazebo/set_model_state')
         self.set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
         
-        self.num_drones = 18
+        self.num_drones = rospy.get_param('~num_drones', 11)
         self.drone_states = {} 
         self.ugv_ids = ['ugv1', 'ugv2']
         self.ugvs = {}

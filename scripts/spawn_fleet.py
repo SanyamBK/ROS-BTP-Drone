@@ -42,7 +42,7 @@ def spawn_fleet():
         initial_pose = Pose()
         initial_pose.position.x = x
         initial_pose.position.y = y
-        initial_pose.position.z = random.uniform(1.5, 2.0) # Start at height 1.5m - 2.0m
+        initial_pose.position.z = random.uniform(2.0, 2.5) # Start at height 2.0m - 2.5m
         
         try:
             spawn_model(drone_name, model_xml, f"drone_{i}", initial_pose, "world")
