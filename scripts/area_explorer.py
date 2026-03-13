@@ -346,7 +346,7 @@ class AreaCoverageController:
                 if target:
                     tx, ty = target
                     dist = math.hypot(local_x - tx, local_y - ty)
-                    if dist < 0.5:
+                    if dist <= 1.5:
                         # Arrived! Start Scanning
                         rospy.loginfo(f"[Drone {explorer.drone_id}] Arrived at waypoint. Scanning...")
                         explorer.start_scanning()

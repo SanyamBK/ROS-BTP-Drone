@@ -134,7 +134,10 @@ class Algo3Hybrid:
         if tgt_idx != -1:
             tx, ty = self.manager.waypoints[tgt_idx]
             dist = math.hypot(x - tx, y - ty)
-            if dist < 0.5:
+            # The Drone's physical camera FOV at 2.0m altitude is ~1.25m radius.
+            # Using 1.5m ensures the algorithm marks it as visited as soon as it enters 
+            # the visual coverage cone, preventing target stalling.
+            if dist <= 1.5:
                 # Reached! Mark visited
                 self.manager.mark_visited(tgt_idx, drone_id)
                 # Clear target to allow new selection
