@@ -5,7 +5,7 @@ import threading
 import random
 import os
 from datetime import datetime
-from std_msgs.msg import String
+from std_msgs.msg import String, Int32
 
 class DroneCommManager:
     def __init__(self):
@@ -20,6 +20,7 @@ class DroneCommManager:
         
         self.pub = rospy.Publisher('/comm/agents', String, queue_size=20)
         self.sub = rospy.Subscriber('/central/comm', String, self.callback)
+        self.death_sub = rospy.Subscriber('/swarm/drone_death', Int32, self.death_callback)
         
         rospy.loginfo(f"[DroneNet] Initializing fleet of {self.num_drones} drones...")
         self._log_to_file(f"[DroneNet] Ready with {self.num_drones} drones")
@@ -52,6 +53,21 @@ class DroneCommManager:
             except:
                 pass
 
+        elif cmd.startswith("HELLO_RETRY_"):
+            # Targeted retry: central agent didn't hear back from this specific drone
+            target_name = cmd[len("HELLO_RETRY_"):]
+            for drone in self.drones:
+                if drone.name == target_name:
+                    rospy.logwarn(f"[DroneNet] Retry received for {target_name}. Re-responding...")
+                    drone.respond_to_hello()
+                    break
+
+    def death_callback(self, msg):
+        drone_id = msg.data
+        if 0 <= drone_id < self.num_drones:
+            self.drones[drone_id].is_dead = True
+            self._log_to_file(f"[DroneNet] Hardware failure recorded for DRONE_{drone_id} - Heartbeat silenced.")
+
     def _init_log_file(self):
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
         logs_dir = os.path.join(base_dir, 'logs')
@@ -73,9 +89,13 @@ class VirtualDrone:
         self.pub = pub
         self.log = log_func
         self.connected = False
+        self.is_dead = False
 
     def respond_to_hello(self):
         """Step 2: Send HI (SYN-ACK)"""
+        if self.is_dead:
+            return
+            
         # Add small random delay to prevent network congestion/collision in sim
         delay = random.uniform(0.1, 2.0)
         

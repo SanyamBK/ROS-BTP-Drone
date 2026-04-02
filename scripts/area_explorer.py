@@ -6,6 +6,7 @@ import os
 import threading
 import random
 from datetime import datetime
+from std_msgs.msg import String, Int32
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker
@@ -378,8 +379,8 @@ class AreaCoverageController:
                 global_tx = tx + self.origin_x
                 global_ty = ty + self.origin_y
                 explorer.update_control(global_tx, global_ty)
-            else:
-                 # No target assigned (Finished or Idle)
+            elif not explorer.is_dead:
+                 # No target assigned (Finished or Idle) - only hover if alive
                  finished_drones += 1
                  if explorer.current_pose:
                      explorer.update_control(explorer.current_pose.position.x, explorer.current_pose.position.y)
@@ -423,6 +424,7 @@ class DroneExplorer:
         
         # Algo 3 - No static waypoints
         self.exploration_complete = False
+        self.is_dead = False  # Set True when hardware failure is simulated
         
         self.group_index = group_index
         self.group_size = max(1, group_size)
@@ -921,7 +923,7 @@ class BackupDrone:
     """Backup drone that stays at starting position"""
     def __init__(self, drone_id, start_pos, result_aggregator=None, measurement_noise=0.05):
         self.drone_id = drone_id
-        self.start_pos = start_pos
+        self.start_pos = None # Will lock to actual spawn position on first odom
         self.current_pose = None
         self.result_aggregator = result_aggregator
         self.measurement_noise = abs(measurement_noise)
@@ -944,7 +946,7 @@ class BackupDrone:
             cmd_vel_topic, Twist, queue_size=1
         )
         
-        rospy.loginfo(f"[Drone {drone_id}] BACKUP - Holding position at start")
+        rospy.loginfo(f"[Drone {drone_id}] BACKUP - Holding true spawned position on field")
         rospy.loginfo(
             f"[Drone {drone_id}] Risk estimate -> idle staging asset, onboard {self.measured_probability*100:.1f}%"
         )
@@ -952,6 +954,8 @@ class BackupDrone:
     def odom_callback(self, msg):
         """Update current position from odometry"""
         self.current_pose = msg.pose.pose
+        if self.start_pos is None:
+            self.start_pos = {'x': msg.pose.pose.position.x, 'y': msg.pose.pose.position.y}
     
     def hold_position(self):
         """Maintain position at starting location"""
@@ -1052,118 +1056,50 @@ def main():
     rospy.loginfo("[Main] Analyzing drought risk for all areas...")
     area_profiles = {name: analyze_drought_risk(name, cfg) for name, cfg in areas.items()}
     
-    rospy.loginfo("[Main] Allocating drones: exactly 2 explorers per farmland + 1 standby...")
+    rospy.loginfo("[Main] Allocating drones to unified workspace with reserves...")
 
-    # Deterministic 2-per-area allocation with a single standby at spawn
-    standby_desired = 1
+    standby_desired = allocation_cfg.get('reserve_drones', 2)
     area_names = list(areas.keys())
-    total_required = len(area_names) * 2
-    if num_drones < total_required + standby_desired:
-        rospy.logwarn(
-            "Fleet size is below 2-per-area + standby. Reducing standby to fit available drones."
-        )
-        standby_desired = max(0, num_drones - total_required)
+    unified_area = area_names[0]  # Should be 'unified_workspace'
+    
+    target_explorers = num_drones - standby_desired
+    if target_explorers < 1:
+        target_explorers = 1
+        standby_desired = num_drones - 1
 
-    # ---------------------------------------------------------
-    # DISTANCE-BASED ALLOCATION LOGIC
-    # ---------------------------------------------------------
-    rospy.loginfo("[Main] Calculating spawn positions to minimize travel distance...")
-    
-    # 1. Calculate Expected Spawn Positions (Same as spawn_fleet.py)
-    # Center (0, 5), Radius 25m
-    spawn_center_x = 0.0
-    spawn_center_y = 5.0
-    spawn_radius = 25.0
-    
-    drone_spawn_pos = {}
-    for i in range(num_drones):
-        angle = (2 * math.pi * i) / num_drones
-        sx = spawn_center_x + spawn_radius * math.cos(angle)
-        sy = spawn_center_y + spawn_radius * math.sin(angle)
-        drone_spawn_pos[i] = (sx, sy)
-
-    # 2. Generate all potential (Drone, Area) pairs with distance
-    potential_assignments = []
-    
-    for d_id, (dx, dy) in drone_spawn_pos.items():
-        for area_name in area_names:
-            acfg = areas[area_name]
-            # Area Center
-            ax = acfg.get('x', 0)
-            ay = acfg.get('y', 0)
-            
-            dist = math.hypot(dx - ax, dy - ay)
-            potential_assignments.append((dist, d_id, area_name))
-            
-    # 3. Sort by distance (Greedy approach: Closest pairs first)
-    potential_assignments.sort(key=lambda x: x[0])
-    
-    # 4. Allocate
     assigned_drones = set()
-    area_allocations = {name: [] for name in area_names}
+    area_allocations = {unified_area: []}
     full_plan = [None] * num_drones
-    allocation_counts = {}
+    allocation_counts = {unified_area: target_explorers}
     
-    # Target: 2 drones per area
-    target_per_area = 2
-    
-    for dist, d_id, area_name in potential_assignments:
-        # Stop if drone already assigned
-        if d_id in assigned_drones:
-            continue
-            
-        # Stop if area is full
-        if len(area_allocations[area_name]) >= target_per_area:
-            continue
-            
-        # Assign
-        assigned_drones.add(d_id)
-        area_allocations[area_name].append(d_id)
-        
-        # Config
-        group_idx = len(area_allocations[area_name]) - 1
-        full_plan[d_id] = {
-            'role': 'explorer',
-            'area': area_name,
-            'group_index': group_idx,
-            'group_size': target_per_area, 
-            'probability': area_profiles[area_name]['probability'],
-            'role_label': 'explorer'
-        }
-        
-        rospy.loginfo(f"  -> Assigned Drone {d_id} to {area_name} (Dist: {dist:.1f}m)")
-
-    # 5. Handle Unassigned Areas (if fleet too small) or Drones (Standby)
-    for area_name in area_names:
-        count = len(area_allocations[area_name])
-        allocation_counts[area_name] = count
-        if count < target_per_area:
-             rospy.logwarn(f"[Main] {area_name} under-allocated: {count}/{target_per_area}")
-
-    # Remaining drones -> Standby
-    standby_drones = []
     for d_id in range(num_drones):
-        if d_id not in assigned_drones:
+        if d_id < target_explorers:
+            area_allocations[unified_area].append(d_id)
+            full_plan[d_id] = {
+                'role': 'explorer',
+                'area': unified_area,
+                'group_index': d_id,
+                'group_size': target_explorers, 
+                'probability': area_profiles[unified_area]['probability'],
+                'role_label': 'explorer'
+            }
             assigned_drones.add(d_id)
-            standby_drones.append(d_id)
+            rospy.loginfo(f"  -> Assigned Drone {d_id} to {unified_area}")
+        else:
             full_plan[d_id] = {
                 'role': 'backup',
                 'area': 'staging',
                 'role_label': 'backup'
             }
+            assigned_drones.add(d_id)
+            rospy.loginfo(f"  -> Assigned Drone {d_id} to BACKUP")
 
     rospy.loginfo("\n" + "="*60)
-    rospy.loginfo("ALLOCATION SUMMARY (FIXED 2-PER-AREA)")
+    rospy.loginfo("ALLOCATION SUMMARY (UNIFIED WORKSPACE)")
     rospy.loginfo("="*60)
-    for area_name in area_names:
-        assigned = [i for i, plan in enumerate(full_plan) if plan['role'] == 'explorer' and plan['area'] == area_name]
-        risk = area_profiles[area_name]['probability']
-        risk_label = "HIGH" if risk > 0.7 else "MED" if risk > 0.4 else "LOW"
-        rospy.loginfo(
-            f"Area {area_name:<6} | Risk {risk:.2f} ({risk_label}) | Drones: {len(assigned)} {assigned}"
-        )
-    rospy.loginfo(f"Total Explorers: {sum(1 for p in full_plan if p['role']=='explorer')}")
-    rospy.loginfo(f"Standby/Backups: {sum(1 for p in full_plan if p['role']=='backup')}")
+    risk = area_profiles[unified_area]['probability']
+    rospy.loginfo(f"Area {unified_area} | Risk {risk:.2f} | Drones: {target_explorers}")
+    rospy.loginfo(f"Standby/Backups: {standby_desired}")
     rospy.loginfo("="*60 + "\n")
 
     rospy.loginfo("[Main] Initializing drone explorers...")
@@ -1296,6 +1232,21 @@ def main():
     rate = rospy.Rate(10) # 10Hz
     start_time = rospy.Time.now()
     
+    # Flags for dynamic events
+    fail_thresh_1 = random.uniform(10.0, 25.0)
+    fail_thresh_2 = random.uniform(50.0, 70.0)
+    failure_1_triggered = False
+    failure_2_triggered = False
+    dead_drones = []
+    
+    # Internal communication
+    central_commands = []
+    def cmd_callback(msg):
+        central_commands.append(msg.data)
+
+    rospy.Subscriber('/central/commands', String, cmd_callback)
+    death_pub = rospy.Publisher('/swarm/drone_death', Int32, queue_size=10)
+    
     while not rospy.is_shutdown():
         # Step each area controller
         active_areas = 0
@@ -1303,20 +1254,97 @@ def main():
         for controller in area_controllers:
             if not controller.is_complete():
                 controller.step()
+                
+                # Make sure dead drones physically sink to altitude 0
+                for local_id in dead_drones:
+                    controller.drone_explorers[local_id].land_step()
+                    
                 active_areas += 1
             else:
-                # Optional: Command drones to land or hold?
-                # For now, they will stop receiving updates and hover (cmd_vel timeout or similar)
-                # But best to command hover explicitly
                 for drone in controller.drone_explorers:
                     if not drone.exploration_complete:
                          drone.exploration_complete = True
-                         # drone.stop_motion() # Replaced by continuous land_step
                          drone.record_summary('complete', "Algo 3 Coverage Complete") 
                          rospy.loginfo(f"Drone {drone.drone_id} finished. Initiating landing sequence...")
 
-                    # Continuous Landing Logic
                     drone.land_step()
+                    
+            # DYNAMIC EVENTS LOGIC
+            v, t, pct = controller.grid_manager.get_progress_stats()
+            
+            # TRIGGER FAILURE 1
+            if pct > fail_thresh_1 and not failure_1_triggered:
+                failure_1_triggered = True
+                active_drones = [i for i in range(len(controller.drone_explorers)) if i not in dead_drones]
+                if len(active_drones) > 1:
+                    local_id = random.choice(active_drones)
+                    drone_to_kill = controller.drone_explorers[local_id]
+                    rospy.logerr(f"CRITICAL: Drone {drone_to_kill.drone_id} has suffered hardware failure 1 and shut down!")
+                    dead_drones.append(local_id)
+                    death_pub.publish(drone_to_kill.drone_id)
+                    drone_to_kill.cmd_vel_pub.publish(Twist())
+                    drone_to_kill.exploration_complete = True
+                    drone_to_kill.is_dead = True
+                    
+                    new_active = [i for i in range(len(controller.drone_explorers)) if i not in dead_drones]
+                    controller.algo.update_active_drones(new_active)
+                    rospy.logwarn(f"Reconfiguring workspace partitions. Active drones: {len(new_active)}")
+
+            # TRIGGER FAILURE 2
+            if pct > fail_thresh_2 and not failure_2_triggered:
+                failure_2_triggered = True
+                active_drones = [i for i in range(len(controller.drone_explorers)) if i not in dead_drones]
+                if len(active_drones) > 1:
+                    local_id = random.choice(active_drones)
+                    drone_to_kill = controller.drone_explorers[local_id]
+                    rospy.logerr(f"CRITICAL: Drone {drone_to_kill.drone_id} has suffered hardware failure 2 and shut down!")
+                    dead_drones.append(local_id)
+                    death_pub.publish(drone_to_kill.drone_id)
+                    drone_to_kill.cmd_vel_pub.publish(Twist())
+                    drone_to_kill.exploration_complete = True
+                    drone_to_kill.is_dead = True
+                    
+                    new_active = [i for i in range(len(controller.drone_explorers)) if i not in dead_drones]
+                    controller.algo.update_active_drones(new_active)
+                    rospy.logwarn(f"Reconfiguring workspace partitions. Active drones: {len(new_active)}")
+
+            # PROCESS CENTRAL COMMANDS (one per tick to avoid draining backups in same frame)
+            if central_commands:
+                cmd = central_commands.pop(0)
+                if cmd == "DEPLOY_RESERVE":
+                    if len(backups) > 0:
+                        rospy.logwarn("DEPLOYING 1 RESERVE DRONE FROM TIMEOUT!")
+                        bk = backups.pop(0)
+                        # Promote Backup to Explorer
+                        new_explorer = DroneExplorer(
+                            bk.drone_id,
+                            controller.area_name,
+                            controller.area_config,
+                            exploration_config,
+                            start_pos,
+                            aggregator,
+                            measurement_noise=measurement_noise,
+                            boundary_soft_margin=boundary_soft_margin,
+                            group_index=len(controller.drone_explorers), # Appended
+                            group_size=num_drones,
+                            drought_probability=area_profiles[controller.area_name]['probability']
+                        )
+                        new_explorer.current_pose = bk.current_pose 
+                        
+                        local_id = len(controller.drone_explorers)
+                        controller.drone_explorers.append(new_explorer)
+                        controller.local_to_global[local_id] = new_explorer.drone_id
+                        
+                        controller.algo.num_drones += 1
+                        controller.algo.drone_targets[local_id] = -1
+                        controller.algo.drone_positions[local_id] = (0, 0)
+                        
+                        new_active_list = [i for i in range(len(controller.drone_explorers)) if i not in dead_drones]
+                        controller.algo.update_active_drones(new_active_list)
+                    
+                        rospy.logwarn(f"Reserve {bk.drone_id} online. Workspaces reconfigured again! Active count: {len(new_active_list)}")
+                    else:
+                        rospy.logerr("Received DEPLOY_RESERVE but no reserves left!")
 
         # Calculate Total System Coverage
         total_pts = 0
@@ -1332,7 +1360,6 @@ def main():
         if active_areas == 0:
             rospy.loginfo("All areas covered!")
             rospy.loginfo("Stopping all drones...")
-            # Ensure everyone gets a final stop command
             # Ensure everyone gets a final stop command
             for controller in area_controllers:
                 for drone in controller.drone_explorers:

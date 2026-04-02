@@ -96,6 +96,7 @@ class Algo3Hybrid:
         # State
         self.drone_targets = {i: -1 for i in range(num_drones)}
         self.drone_positions = {i: (0,0) for i in range(num_drones)}
+        self.active_drones = list(range(num_drones))
 
         # Algo Parameters
         self.shake_trigger_M = 4      
@@ -105,26 +106,35 @@ class Algo3Hybrid:
         self.no_gain_counter = 0
         self.best_coverage = 0.0
         self.shake_count = 0
-        
-        # Define Partitions (Vertical Strips)
-        # e.g. 2 Drones: [0, W/2], [W/2, W]
-        self.partition_width = self.manager.side_length / max(1, num_drones)
+
+    def update_active_drones(self, active_list):
+        self.active_drones = active_list
+        # Clear targets for drones that are no longer active
+        for d_id in list(self.drone_targets.keys()):
+            if d_id not in self.active_drones:
+                self.drone_targets[d_id] = -1
 
     def _is_in_partition(self, drone_id, wp_idx):
-        """Check if waypoint belongs to drone's assigned strip."""
-        if self.num_drones == 1: return True
-        
+        """Dynamic Voronoi partitioning based on current active drones."""
+        if drone_id not in self.active_drones:
+            return False
+            
+        if len(self.active_drones) <= 1:
+            return True
+            
         wx, wy = self.manager.waypoints[wp_idx]
         
-        # X-based partitioning
-        min_x = drone_id * self.partition_width
-        max_x = (drone_id + 1) * self.partition_width
+        my_pos = self.drone_positions.get(drone_id, (0,0))
+        my_dist = math.hypot(my_pos[0] - wx, my_pos[1] - wy)
         
-        # Include boundary for last drone to avoid rounding gaps
-        if drone_id == self.num_drones - 1:
-            max_x = self.manager.side_length + 1.0
-            
-        return min_x <= wx < max_x
+        for other_id in self.active_drones:
+            if other_id == drone_id: continue
+            other_pos = self.drone_positions.get(other_id, (0,0))
+            other_dist = math.hypot(other_pos[0] - wx, other_pos[1] - wy)
+            if other_dist < my_dist:
+                return False # Another active drone is closer
+                
+        return True
 
     def update_drone_pose(self, drone_id, x, y):
         self.drone_positions[drone_id] = (x, y)
@@ -175,8 +185,9 @@ class Algo3Hybrid:
         score = -dist 
         
         # 2. Target Repulsion (Still useful for intra-partition or edge cases)
-        for other_id, other_pos in self.drone_positions.items():
+        for other_id in self.active_drones:
             if other_id == drone_id: continue
+            other_pos = self.drone_positions.get(other_id, (0,0))
             
             tgt_idx = self.drone_targets[other_id]
             if tgt_idx != -1:
@@ -216,7 +227,7 @@ class Algo3Hybrid:
         return False
 
     def _shake_all(self):
-        for i in range(self.num_drones):
+        for i in self.active_drones:
             self._shake_single(i)
 
     def step(self):
@@ -231,7 +242,7 @@ class Algo3Hybrid:
         # ---------------------------------------------------------
         # With partitioning, this should happen less.
         # If blocked, just WAIT or re-plan, don't jump randomly.
-        drones_list = list(range(self.num_drones))
+        drones_list = list(self.active_drones)
         
         for i in range(len(drones_list)):
             d1 = drones_list[i]
@@ -242,7 +253,7 @@ class Algo3Hybrid:
                 p2 = self.drone_positions[d2]
                 
                 dist = math.hypot(p1[0]-p2[0], p1[1]-p2[1])
-                if dist < 3.0: # 3.0m Safety Bubble (Increased)
+                if dist < 1.5: # Match grid spacing (1.5m) to avoid over-triggering
                     # Force D2 to drop target and re-evaluate
                     self.drone_targets[d2] = -1
                     return f"PROXIMITY RESET (Px: {dist:.1f}m)"
@@ -270,7 +281,7 @@ class Algo3Hybrid:
         # ---------------------------------------------------------
         unvisited = self.manager.get_unvisited_indices()
         
-        for d_id in range(self.num_drones):
+        for d_id in self.active_drones:
             # Target Locking: If already has target, keep it! 
             # This prevents "wiggling while moving".
             if self.drone_targets[d_id] != -1:
@@ -291,11 +302,16 @@ class Algo3Hybrid:
             if best_idx != -1:
                 self.drone_targets[d_id] = best_idx
             else:
-                # No valid points in my partition?
-                # Check if my partition is done.
-                # If I am done but others aren't, I should stay put or help?
-                # "Separate areas" implies strict boundaries. I will hold position.
-                pass
+                # Partition exhausted — help cover any remaining global unvisited waypoint
+                global_candidates = self.manager.get_unvisited_indices()
+                if global_candidates:
+                    # Pick closest globally unvisited waypoint
+                    px, py = self.drone_positions.get(d_id, (0, 0))
+                    global_candidates.sort(key=lambda i: math.hypot(
+                        px - self.manager.waypoints[i][0],
+                        py - self.manager.waypoints[i][1]
+                    ))
+                    self.drone_targets[d_id] = global_candidates[0]
                 
         return "GOMWC (Partitioned)"
 

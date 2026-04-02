@@ -1,12 +1,12 @@
 areas:
-  area_1:
-    name: Farmland 1
-    crop: Wheat
-    x: -12.0
-    y: 9.0
+  unified_workspace:
+    name: Unified Farmland
+    crop: Mixed
+    x: 0.0
+    y: 0.0
     z: 3.0
-    color: red
-    size: 10.0
+    color: green
+    size: 21.5
     drought_history:
     - year: 2021
       rainfall_deficit: 0.32
@@ -38,162 +38,6 @@ areas:
       veg_health_index: 0.41
       heatwave_days: 18
       drought_declared: true
-  area_2:
-    name: Farmland 2
-    crop: Soybean
-    x: -2.0
-    y: 11.5
-    z: 3.2
-    color: blue
-    size: 12.0
-    drought_history:
-    - year: 2021
-      rainfall_deficit: 0.12
-      soil_moisture_index: 0.62
-      veg_health_index: 0.78
-      heatwave_days: 5
-      drought_declared: false
-    - year: 2022
-      rainfall_deficit: 0.18
-      soil_moisture_index: 0.6
-      veg_health_index: 0.74
-      heatwave_days: 6
-      drought_declared: false
-    - year: 2023
-      rainfall_deficit: 0.2
-      soil_moisture_index: 0.58
-      veg_health_index: 0.72
-      heatwave_days: 7
-      drought_declared: false
-    - year: 2024
-      rainfall_deficit: 0.22
-      soil_moisture_index: 0.56
-      veg_health_index: 0.7
-      heatwave_days: 7
-      drought_declared: false
-    - year: 2025
-      rainfall_deficit: 0.24
-      soil_moisture_index: 0.54
-      veg_health_index: 0.69
-      heatwave_days: 8
-      drought_declared: false
-  area_3:
-    name: Farmland 3
-    crop: Maize
-    x: 11.0
-    y: 7.5
-    z: 3.1
-    color: yellow
-    size: 10.0
-    drought_history:
-    - year: 2021
-      rainfall_deficit: 0.28
-      soil_moisture_index: 0.52
-      veg_health_index: 0.63
-      heatwave_days: 8
-      drought_declared: false
-    - year: 2022
-      rainfall_deficit: 0.36
-      soil_moisture_index: 0.48
-      veg_health_index: 0.58
-      heatwave_days: 10
-      drought_declared: false
-    - year: 2023
-      rainfall_deficit: 0.42
-      soil_moisture_index: 0.44
-      veg_health_index: 0.55
-      heatwave_days: 11
-      drought_declared: true
-    - year: 2024
-      rainfall_deficit: 0.48
-      soil_moisture_index: 0.41
-      veg_health_index: 0.52
-      heatwave_days: 13
-      drought_declared: true
-    - year: 2025
-      rainfall_deficit: 0.56
-      soil_moisture_index: 0.37
-      veg_health_index: 0.47
-      heatwave_days: 16
-      drought_declared: true
-  area_4:
-    name: Farmland 4
-    crop: Barley
-    x: -10.0
-    y: 0.0
-    z: 3.4
-    color: purple
-    size: 10.0
-    drought_history:
-    - year: 2021
-      rainfall_deficit: 0.22
-      soil_moisture_index: 0.56
-      veg_health_index: 0.68
-      heatwave_days: 7
-      drought_declared: false
-    - year: 2022
-      rainfall_deficit: 0.28
-      soil_moisture_index: 0.53
-      veg_health_index: 0.64
-      heatwave_days: 8
-      drought_declared: false
-    - year: 2023
-      rainfall_deficit: 0.35
-      soil_moisture_index: 0.5
-      veg_health_index: 0.6
-      heatwave_days: 10
-      drought_declared: false
-    - year: 2024
-      rainfall_deficit: 0.38
-      soil_moisture_index: 0.47
-      veg_health_index: 0.57
-      heatwave_days: 11
-      drought_declared: false
-    - year: 2025
-      rainfall_deficit: 0.43
-      soil_moisture_index: 0.44
-      veg_health_index: 0.52
-      heatwave_days: 12
-      drought_declared: true
-  area_5:
-    name: Farmland 5
-    crop: Vegetables
-    x: 1.0
-    y: -1.0
-    z: 3.5
-    color: orange
-    size: 12.0
-    drought_history:
-    - year: 2021
-      rainfall_deficit: 0.08
-      soil_moisture_index: 0.68
-      veg_health_index: 0.8
-      heatwave_days: 3
-      drought_declared: false
-    - year: 2022
-      rainfall_deficit: 0.1
-      soil_moisture_index: 0.66
-      veg_health_index: 0.79
-      heatwave_days: 4
-      drought_declared: false
-    - year: 2023
-      rainfall_deficit: 0.12
-      soil_moisture_index: 0.65
-      veg_health_index: 0.78
-      heatwave_days: 4
-      drought_declared: false
-    - year: 2024
-      rainfall_deficit: 0.15
-      soil_moisture_index: 0.63
-      veg_health_index: 0.77
-      heatwave_days: 5
-      drought_declared: false
-    - year: 2025
-      rainfall_deficit: 0.17
-      soil_moisture_index: 0.62
-      veg_health_index: 0.76
-      heatwave_days: 5
-      drought_declared: false
 start_position:
   x: 0.0
   y: -20.0
@@ -204,9 +48,9 @@ exploration:
   waypoint_spacing: 2.5
   flight_altitude: 2.0
 allocation:
-  min_drones_per_area: 2
-  max_drones_per_area: 2
-  reserve_drones: 0
+  min_drones_per_area: 9
+  max_drones_per_area: 11
+  reserve_drones: 2
   measurement_noise: 0.15
   idle_measurement_noise: 0.05
   boundary_soft_margin: 0.4

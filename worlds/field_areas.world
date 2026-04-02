@@ -58,96 +58,19 @@
 
     <!-- Scattered circular farmland areas (less regular layout) -->
 
-    <model name="area_1">
+    <model name="unified_workspace">
       <static>true</static>
-      <pose>-12.0 9.0 0.01 0 0 0</pose>
+      <pose>0.0 0.0 0.01 0 0 0</pose>
       <link name="link">
         <visual name="visual">
           <geometry>
-            <cylinder>
-              <radius>5.0</radius>
-              <length>0.01</length>
-            </cylinder>
+            <box>
+              <size>21.5 21.5 0.01</size>
+            </box>
           </geometry>
           <material>
-            <ambient>0.8 0.2 0.2 0.7</ambient>
-            <diffuse>0.9 0.2 0.2 0.7</diffuse>
-          </material>
-        </visual>
-      </link>
-    </model>
-
-    <model name="area_2">
-      <static>true</static>
-      <pose>-2.0 11.5 0.01 0 0 0</pose>
-      <link name="link">
-        <visual name="visual">
-          <geometry>
-            <cylinder>
-              <radius>6.0</radius>
-              <length>0.01</length>
-            </cylinder>
-          </geometry>
-          <material>
-            <ambient>0.2 0.2 0.8 0.7</ambient>
-            <diffuse>0.2 0.2 0.9 0.7</diffuse>
-          </material>
-        </visual>
-      </link>
-    </model>
-
-    <model name="area_3">
-      <static>true</static>
-      <pose>11.0 7.5 0.01 0 0 0</pose>
-      <link name="link">
-        <visual name="visual">
-          <geometry>
-            <cylinder>
-              <radius>5.0</radius>
-              <length>0.01</length>
-            </cylinder>
-          </geometry>
-          <material>
-            <ambient>0.8 0.8 0.2 0.7</ambient>
-            <diffuse>0.9 0.9 0.2 0.7</diffuse>
-          </material>
-        </visual>
-      </link>
-    </model>
-
-    <model name="area_4">
-      <static>true</static>
-      <pose>-11.0 1.5 0.01 0 0 0</pose>
-      <link name="link">
-        <visual name="visual">
-          <geometry>
-            <cylinder>
-              <radius>5.0</radius>
-              <length>0.01</length>
-            </cylinder>
-          </geometry>
-          <material>
-            <ambient>0.6 0.2 0.8 0.7</ambient>
-            <diffuse>0.7 0.2 0.9 0.7</diffuse>
-          </material>
-        </visual>
-      </link>
-    </model>
-
-    <model name="area_5">
-      <static>true</static>
-      <pose>1.0 -1.0 0.01 0 0 0</pose>
-      <link name="link">
-        <visual name="visual">
-          <geometry>
-            <cylinder>
-              <radius>6.0</radius>
-              <length>0.01</length>
-            </cylinder>
-          </geometry>
-          <material>
-            <ambient>0.9 0.5 0.1 0.7</ambient>
-            <diffuse>1.0 0.6 0.1 0.7</diffuse>
+            <ambient>0.3 0.8 0.3 0.7</ambient>
+            <diffuse>0.4 0.9 0.4 0.7</diffuse>
           </material>
         </visual>
       </link>

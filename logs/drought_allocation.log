@@ -1,5 +1,5 @@
 MULTI-DRONE FARMLAND DROUGHT ALLOCATION REPORT
-Generated (UTC): 2026-03-13 16:06:14
+Generated (UTC): 2026-03-31 19:11:49
 
 Drought probability model:
   * Weighted rainfall deficit, soil moisture deficit, vegetation stress, and heatwave intensity
@@ -9,23 +9,33 @@ Drought probability model:
 Area drought risk summary:
 Area   Farm Name           P(drought)  RainDef  SoilDef  VegStress  HeatIdx  DroughtFreq  Trend
 -----  ------------------  ----------  -------  -------  ---------  -------  -----------  -----
-area_1  Farmland 1              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
-area_2  Farmland 2              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
-area_3  Farmland 3              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
-area_4  Farmland 4              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
-area_5  Farmland 5              48.77%    0.66    0.00     0.00    0.02        0.00   0.30
+unified_workspace  Unified Farmland        48.77%    0.66    0.00     0.00    0.02        0.00   0.30
 
 Drone-to-area allocation:
 Drone  Role       Assignment (segment)              Risk   Notes
 -----  ---------  -------------------------------  ------  ---------------------------
-0      explorer  area_3  Farmland 3           1/2          48.8%  Farmland 3 (yellow)
-1      explorer  area_3  Farmland 3           2/2          48.8%  Farmland 3 (yellow)
-2      explorer  area_2  Farmland 2           2/2          48.8%  Farmland 2 (blue)
-3      explorer  area_2  Farmland 2           1/2          48.8%  Farmland 2 (blue)
-4      explorer  area_1  Farmland 1           2/2          48.8%  Farmland 1 (red)
-5      explorer  area_1  Farmland 1           1/2          48.8%  Farmland 1 (red)
-6      explorer  area_4  Farmland 4           1/2          48.8%  Farmland 4 (purple)
-7      explorer  area_4  Farmland 4           2/2          48.8%  Farmland 4 (purple)
-8      explorer  area_5  Farmland 5           2/2          48.8%  Farmland 5 (orange)
-9      explorer  area_5  Farmland 5           1/2          48.8%  Farmland 5 (orange)
+0      explorer  unified_workspace Unified Farmland     1/9          48.8%  Unified Farmland (green)
+1      explorer  unified_workspace Unified Farmland     2/9          48.8%  Unified Farmland (green)
+2      explorer  unified_workspace Unified Farmland     3/9          48.8%  Unified Farmland (green)
+3      explorer  unified_workspace Unified Farmland     4/9          48.8%  Unified Farmland (green)
+4      explorer  unified_workspace Unified Farmland     5/9          48.8%  Unified Farmland (green)
+5      explorer  unified_workspace Unified Farmland     6/9          48.8%  Unified Farmland (green)
+6      explorer  unified_workspace Unified Farmland     7/9          48.8%  Unified Farmland (green)
+7      explorer  unified_workspace Unified Farmland     8/9          48.8%  Unified Farmland (green)
+8      explorer  unified_workspace Unified Farmland     9/9          48.8%  Unified Farmland (green)
+9      backup    staging-area                 n/a       ---    Holding position
 10     backup    staging-area                 n/a       ---    Holding position
+
+Mission risk observations:
+Drone  Farm Name           Actual  Onboard  Error   Bounds  Final (x,y)     Status   Notes
+-----  ------------------  -------  -------  -------  ------  --------------  -------  ---------------------------
+0      Unified Farmland      48.8%    53.6%   +4.83%  0       (2.2, 6.2)      complete  Algo 3 Coverage Complete
+1      Unified Farmland      48.8%    56.0%   +7.18%  0       (-1.4, -3.4)    complete  Algo 3 Coverage Complete
+2      Unified Farmland      48.8%    47.7%   -1.07%  0       (-3.9, 7.1)     complete  Algo 3 Coverage Complete
+3      Unified Farmland      48.8%    50.6%   +1.79%  0       (-4.4, 0.9)     complete  Algo 3 Coverage Complete
+4      Unified Farmland      48.8%    47.5%   -1.28%  0       (-7.3, 4.5)     complete  Algo 3 Coverage Complete
+7      Unified Farmland      48.8%    54.1%   +5.33%  0       (1.0, -8.7)     complete  Algo 3 Coverage Complete
+8      Unified Farmland      48.8%    48.3%   -0.47%  0       (4.9, -2.1)     complete  Algo 3 Coverage Complete
+9      Staging Pad            0.0%     0.0%   +0.00%  0       (16.0, 0.0)     reserve  Idle drought reserve drone
+9      Unified Farmland      48.8%    54.8%   +6.05%  0       (3.9, 3.2)      complete  Algo 3 Coverage Complete
+10     Staging Pad            0.0%     0.0%   +0.00%  0       (-15.4, 4.5)    reserve  Idle drought reserve drone
