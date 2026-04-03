@@ -28,11 +28,7 @@ class GridWaypointManager:
             y = min(r * self.spacing, side_length - 0.5)
             for c in range(cols):
                 x = min(c * self.spacing, side_length - 0.5)
-                
-                # Check if point is within circular radius
-                dist = math.hypot(x - center_x, y - center_y)
-                if dist <= coverage_radius:
-                    self.waypoints.append((x, y))
+                self.waypoints.append((x, y))
             
         self.total_points = len(self.waypoints)
         self.visited = [False] * self.total_points
@@ -51,8 +47,11 @@ class GridWaypointManager:
 
     def get_progress_stats(self):
         visited_count = sum(self.visited)
+        cell_area = self.spacing * self.spacing
+        covered_area = visited_count * cell_area
+        total_area = self.total_points * cell_area
         pct = (visited_count / self.total_points) * 100.0 if self.total_points > 0 else 100.0
-        return visited_count, self.total_points, pct
+        return covered_area, total_area, pct
         
     def get_drone_stats(self):
         stats = {}
@@ -133,7 +132,9 @@ class Algo3Hybrid:
             other_dist = math.hypot(other_pos[0] - wx, other_pos[1] - wy)
             if other_dist < my_dist:
                 return False # Another active drone is closer
-                
+            elif abs(other_dist - my_dist) < 0.01 and other_id < drone_id:
+                return False # Tie-breaker to prevent overlap
+
         return True
 
     def update_drone_pose(self, drone_id, x, y):
@@ -184,17 +185,13 @@ class Algo3Hybrid:
         # 1. Greedy Score
         score = -dist 
         
-        # 2. Target Repulsion (Still useful for intra-partition or edge cases)
+        # Target Repulsion (Just avoid exactly same target)
         for other_id in self.active_drones:
             if other_id == drone_id: continue
-            other_pos = self.drone_positions.get(other_id, (0,0))
-            
             tgt_idx = self.drone_targets[other_id]
-            if tgt_idx != -1:
-                tx, ty = self.manager.waypoints[tgt_idx]
-                d_tgt = math.hypot(wx - tx, wy - ty)
-                if d_tgt < 4.0: 
-                    score -= 100.0
+            if tgt_idx == wp_idx:
+                score = -999999
+                break
 
         return score
 
@@ -232,16 +229,22 @@ class Algo3Hybrid:
 
     def step(self):
         # 0. Measure State
-        current_cov_pts, total_pts, current_cov_pct = self.manager.get_progress_stats()
+        covered_area, total_area, current_cov_pct = self.manager.get_progress_stats()
         
-        if current_cov_pts == total_pts:
-            return "Mission Complete"
+        if current_cov_pct >= 99.9:
+            # RESET GRID for continuous surveillance
+            self.manager.visited = [False] * self.manager.total_points
+            self.manager.visited_by = [-1] * self.manager.total_points
+            self.best_coverage = 0.0
+            self.no_gain_counter = 0
+            return "Surveillance Loop Reset"
             
         # ---------------------------------------------------------
         # PROXIMITY CHECK (Anti-Cluster Force)
         # ---------------------------------------------------------
         # With partitioning, this should happen less.
         # If blocked, just WAIT or re-plan, don't jump randomly.
+        msgs = []
         drones_list = list(self.active_drones)
         
         for i in range(len(drones_list)):
@@ -256,7 +259,7 @@ class Algo3Hybrid:
                 if dist < 1.5: # Match grid spacing (1.5m) to avoid over-triggering
                     # Force D2 to drop target and re-evaluate
                     self.drone_targets[d2] = -1
-                    return f"PROXIMITY RESET (Px: {dist:.1f}m)"
+                    msgs.append(f"PROXIMITY RESET (Px: {dist:.1f}m)")
 
         # Check Progress
         if current_cov_pct > self.best_coverage + self.epsilon:
@@ -301,6 +304,24 @@ class Algo3Hybrid:
             
             if best_idx != -1:
                 self.drone_targets[d_id] = best_idx
+            elif unvisited:
+                # Starvation fallback: If Voronoi partition is entirely empty, pick nearest available
+                fallback_idx = -1
+                fallback_score = -999999
+                targeted = set(self.drone_targets.values())
+                
+                for idx in unvisited:
+                    if idx in targeted:
+                       continue
+                    wx, wy = self.manager.waypoints[idx]
+                    px, py = self.drone_positions.get(d_id, (0,0))
+                    f_score = -math.hypot(wx - px, wy - py)
+                    
+                    if f_score > fallback_score:
+                        fallback_score = f_score
+                        fallback_idx = idx
+                if fallback_idx != -1:
+                    self.drone_targets[d_id] = fallback_idx
             else:
                 # Partition exhausted — help cover any remaining global unvisited waypoint
                 global_candidates = self.manager.get_unvisited_indices()

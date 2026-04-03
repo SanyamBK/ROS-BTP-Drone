@@ -532,24 +532,62 @@ class DroneExplorer:
         # If we have odometry, use it for controlled descent
         if self.current_pose:
             z = self.current_pose.position.z
-            
-            if z > 0.15: # Above ground threshold
-                # Descend
-                cmd.linear.z = -0.5 
-                # Keep horizontal velocity zero to prevent drift
-                cmd.linear.x = 0.0
-                cmd.linear.y = 0.0
-                cmd.angular.z = 0.0
-                self.cmd_vel_pub.publish(cmd)
+            if self.current_pose.position.z > 0.2:
+                cmd.linear.z = -2.0 # Force faster drop 
             else:
-                # Grounded. Send zero command to stop motors.
-                # This effectively disarms/stops the drone in simulation.
-                self.cmd_vel_pub.publish(Twist())
+                cmd.linear.z = -0.5 # Drive into ground
         else:
              # No odom, just send blind land command
              cmd.linear.z = -0.5
              self.cmd_vel_pub.publish(cmd)
 
+    def crash_step(self):
+        """Hardware failure: Fast descent to the ground and remove FOV cone"""
+        if getattr(self, 'replaced_with_dead', False):
+            # Keep wreckage original drone hovering safely underground to avoid gazebo crash
+            cmd = Twist()
+            self.cmd_vel_pub.publish(cmd)
+            self.battery_pub.publish(100.0) # Inform UGV to drop target
+            return
+            
+        cmd = Twist()
+        cmd.linear.x = 0.0
+        cmd.linear.y = 0.0
+        cmd.angular.z = 0.0
+        
+        if self.current_pose:
+            if self.current_pose.position.z > 0.2:
+                cmd.linear.z = -2.0 # Force faster drop 
+            else:
+                cmd.linear.z = -0.5 # Drive into ground
+                if not getattr(self, 'replaced_with_dead', False):
+                    self.replaced_with_dead = True
+                    import subprocess
+                    x = self.current_pose.position.x
+                    y = self.current_pose.position.y
+                    # Spawn dead drone wreckage flipped over
+                    model_path = "/home/ros/catkin_ws/src/multi_drone_sim/models/dead_quadcopter/model.sdf"
+                    spawn_cmd = f"rosrun gazebo_ros spawn_model -sdf -file {model_path} -model dead_drone_{self.drone_id} -x {x} -y {y} -z 0.05 -R 3.14 -P 0.1"
+                    subprocess.Popen(spawn_cmd, shell=True)
+                    
+                    # Instead of deleting (which crashes gazebo), teleport original under the map!
+                    hide_cmd = f"rosservice call /gazebo/set_model_state \"model_state: {{model_name: 'drone_{self.drone_id}', pose: {{position: {{x: {x}, y: {y}, z: -100.0}}}}, reference_frame: 'world'}}\""
+                    subprocess.Popen(hide_cmd, shell=True)
+                    
+                    # Delete the ghost FOV cone from RViz before returning
+                    marker = Marker()
+                    marker.header.frame_id = "world"
+                    marker.ns = "fov_cone"
+                    marker.id = self.drone_id
+                    marker.action = Marker.DELETE
+                    self.marker_pub.publish(marker)
+                    
+                    rospy.logerr(f"[Drone {self.drone_id}] Wreckage spawned on ground!")
+                    return
+        else:
+            cmd.linear.z = -1.0 # On the ground
+            
+        self.cmd_vel_pub.publish(cmd)
     def record_summary(self, status, note=None, final_pos=None):
         if self.result_recorded: return
         if note: self.notes.append(note)
@@ -729,7 +767,7 @@ class BackupDrone:
         rate = rospy.Rate(10)
         rospy.loginfo(f"[BackupDrone {self.drone_id}] Holding position...")
         
-        while not rospy.is_shutdown():
+        while not rospy.is_shutdown() and not getattr(self, 'mission_complete', False):
             if self.current_pose:
                 # Simple P-control to hold altitude at 2.0m ?
                 # Or just hover. Let's do simple hover command (0 velocity)
@@ -1257,7 +1295,7 @@ def main():
                 
                 # Make sure dead drones physically sink to altitude 0
                 for local_id in dead_drones:
-                    controller.drone_explorers[local_id].land_step()
+                    controller.drone_explorers[local_id].crash_step()
                     
                 active_areas += 1
             else:

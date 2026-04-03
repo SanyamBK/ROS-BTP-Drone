@@ -126,9 +126,15 @@ class MobileRechargingUGV:
         dy = self.other_ugv_pos.y - self.y
         dist = sqrt(dx * dx + dy * dy)
         if dist < self.min_separation:
-            # Full stop if we're within the minimum distance.
-            self.velocity = 0.0
-            self.omega = 0.0
+            # Calculate a repulsive vector to push them apart
+            angle_away = atan2(-dy, -dx)
+            diff_yaw = angle_away - self.yaw
+            while diff_yaw > 3.14159: diff_yaw -= 2*3.14159
+            while diff_yaw < -3.14159: diff_yaw += 2*3.14159
+            
+            # Repulsive motion, move away at low speed
+            self.omega = 1.0 * (1 if diff_yaw > 0 else -1)
+            self.velocity = 0.5
 
     def cmd_callback(self, msg):
         self.velocity = msg.linear.x
@@ -173,18 +179,8 @@ class MobileRechargingUGV:
             self.omega = 0.0
             # Hold initial position
         elif (current - self.last_cmd_time).to_sec() > 1.0:
-            # INTERCEPT LOGIC
-            priority_drone = self.get_priority_target()
-            
-            if priority_drone is not None and priority_drone in self.drone_positions:
-                # Move towards priority drone
-                target_pos = self.drone_positions[priority_drone]
-                self.move_towards(target_pos.x, target_pos.y, dt)
-                if current.to_sec() % 5.0 < 0.1:
-                    rospy.loginfo_throttle(5, f"[{self.ugv_id}] Responding to Low Battery: Drone {priority_drone} ({self.drone_batteries[priority_drone]:.1f}%)")
-            else:
-                # Default Patrol
-                self.run_patrol_logic(dt)
+            # Default Patrol when planner isn't commanding
+            self.run_patrol_logic(dt)
 
         # Always enforce UGV-UGV separation once velocity/omega is chosen
         self._apply_separation()

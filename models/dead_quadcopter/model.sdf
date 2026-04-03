@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="dead_quadcopter">
+    <static>true</static>
+    <pose>0 0 0.05 0 0 0</pose>
+    
+    <link name="base_link">
+      <gravity>1</gravity>
+      <inertial>
+        <mass>1.5</mass>
+        <inertia>
+          <ixx>0.05</ixx> <!-- Normal inertia so it can tumble -->
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.05</iyy>
+          <iyz>0</iyz>
+          <izz>0.055</izz>
+        </inertia>
+      </inertial>
+
+      <!-- Body -->
+      <collision name="collision_body">
+        <geometry>
+          <box>
+            <size>0.3 0.3 0.1</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="visual_body">
+        <geometry>
+          <box>
+            <size>0.3 0.3 0.1</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.05 0.05 0.05 1</ambient>
+          <diffuse>0.1 0.1 0.1 1</diffuse>
+          <specular>0.0 0.0 0.0 1</specular>
+        </material>
+      </visual>
+
+      <!-- Arms visualization -->
+      <visual name="visual_arm1">
+        <pose>0.15 0.15 0 0 0 0.785</pose>
+        <geometry><cylinder><radius>0.02</radius><length>0.3</length></cylinder></geometry>
+        <material><ambient>0.1 0.0 0.0 1</ambient><diffuse>0.1 0.0 0.0 1</diffuse></material>
+      </visual>
+
+      <visual name="visual_arm2">
+        <pose>-0.15 0.15 0 0 0 -0.785</pose>
+        <geometry><cylinder><radius>0.02</radius><length>0.3</length></cylinder></geometry>
+        <material><ambient>0.1 0.0 0.0 1</ambient><diffuse>0.1 0.0 0.0 1</diffuse></material>
+      </visual>
+
+      <!-- Propellers -->
+      <visual name="visual_prop1">
+        <pose>0.2 0.2 0.1 0 0 0</pose>
+        <geometry><cylinder><radius>0.1</radius><length>0.02</length></cylinder></geometry>
+        <material><ambient>0.1 0.1 0.1 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+      </visual>
+
+      <visual name="visual_prop2">
+        <pose>-0.2 0.2 0.1 0 0 0</pose>
+        <geometry><cylinder><radius>0.1</radius><length>0.02</length></cylinder></geometry>
+        <material><ambient>0.1 0.1 0.1 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+      </visual>
+
+      <visual name="visual_prop3">
+        <pose>0.2 -0.2 0.1 0 0 0</pose>
+        <geometry><cylinder><radius>0.1</radius><length>0.02</length></cylinder></geometry>
+        <material><ambient>0.1 0.1 0.1 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+      </visual>
+
+      <visual name="visual_prop4">
+        <pose>-0.2 -0.2 0.1 0 0 0</pose>
+        <geometry><cylinder><radius>0.1</radius><length>0.02</length></cylinder></geometry>
+        <material><ambient>0.1 0.1 0.1 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+      </visual>
+
+    </link>
+  </model>
+</sdf>

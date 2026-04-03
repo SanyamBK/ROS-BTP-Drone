@@ -206,6 +206,9 @@ class EnergyAwarePlanner:
                      if ugv['path_idx'] >= len(ugv['path']):
                          # Last point, aim for actual drone
                          target_x, target_y = target_pos.x, target_pos.y
+                     else:
+                         # ADD missing assignment for this tick
+                         target_x, target_y = ugv['path'][ugv['path_idx']]
              else:
                  target_x, target_y = target_pos.x, target_pos.y
 
