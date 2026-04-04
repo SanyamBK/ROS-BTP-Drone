@@ -6,3 +6,5 @@ research_papers/
 scripts/__pycache__/
 LSTM/__pycache__/
 paper/
+implementation.md
+scripts/test_waypoints.py

@@ -1,5 +1,5 @@
 MULTI-DRONE MISSION SUMMARY
-Generated (UTC): 2026-03-31 19:11:49
+Generated (UTC): 2026-04-04 21:28:19
 
 Central Agent: Tower beacon stopped after mission_complete (HELLO/ACK queue drained)
 UGV Chargers: Parked after mission_complete signal
@@ -12,14 +12,14 @@ unified_workspace (  0.0,  0.0)  green     [0, 1, 2, 3, 4, 5, 6, 7, 8]
 Drone docking/finish states:
 Drone  Role       Area       Final (x,y)     Status      Notes
 -----  ---------  ---------  --------------  ----------  ---------------------------
-0      explorer   unified_workspace  (2.2, 6.2)      complete    Algo 3 Coverage Complete
-1      explorer   unified_workspace  (-1.4, -3.4)    complete    Algo 3 Coverage Complete
-2      explorer   unified_workspace  (-3.9, 7.1)     complete    Algo 3 Coverage Complete
-3      explorer   unified_workspace  (-4.4, 0.9)     complete    Algo 3 Coverage Complete
-4      explorer   unified_workspace  (-7.3, 4.5)     complete    Algo 3 Coverage Complete
+0      explorer   unified_workspace  --              n/a         
+1      explorer   unified_workspace  --              n/a         
+2      explorer   unified_workspace  --              n/a         
+3      explorer   unified_workspace  --              n/a         
+4      explorer   unified_workspace  --              n/a         
 5      explorer   unified_workspace  --              n/a         
 6      explorer   unified_workspace  --              n/a         
-7      explorer   unified_workspace  (1.0, -8.7)     complete    Algo 3 Coverage Complete
-8      explorer   unified_workspace  (4.9, -2.1)     complete    Algo 3 Coverage Complete
-9      backup     staging    (3.9, 3.2)      complete    Algo 3 Coverage Complete
-10     backup     staging    (-15.4, 4.5)    reserve     Idle drought reserve drone
+7      explorer   unified_workspace  --              n/a         
+8      explorer   unified_workspace  --              n/a         
+9      backup     staging    --              n/a         
+10     backup     staging    --              n/a         
