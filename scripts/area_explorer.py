@@ -60,15 +60,15 @@ def analyze_drought_risk(area_name, area_config):
     # Restore history for the return value
     history = area_config.get('drought_history', [])
     
-    # 1. Try LSTM Prediction (highest priority)
-    probability = None
+    # 1. Try LSTM Prediction (highest priority).
+    #    predict_from_csv() uses the live CSV if present, otherwise falls back
+    #    to LSTM/reference_sequence.npy (a tiny pre-extracted snapshot committed
+    #    to the repo). Returns None if torch is unavailable.
     _pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_path = os.path.join(_pkg_root, "us-drought-meteorological-data", "versions", "5", "train_timeseries", "train_timeseries.csv")
-    
-    if os.path.exists(data_path):
-        probability = model.predict_from_csv(data_path)
-        if probability is not None:
-             rospy.loginfo(f"[{area_name}] Using Trained LSTM Model -> Risk: {probability:.1%}")
+    probability = model.predict_from_csv(data_path)
+    if probability is not None:
+        rospy.loginfo(f"[{area_name}] Using Trained LSTM Model -> Risk: {probability:.1%}")
 
     # 2. Fallback to Random Pool if LSTM failed (missing torch or model)
     if probability is None:
