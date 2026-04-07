@@ -210,7 +210,11 @@ class MobileRechargingUGV:
         if msg.data:
             rospy.loginfo(f"[{self.ugv_id}] Mission complete received. Parking and shutting down.")
             self.mission_done = True
-            rospy.signal_shutdown("Mission complete")
+            # Do NOT call rospy.signal_shutdown() here — the publisher is still
+            # being used by update_physics() on the next loop tick and calling
+            # signal_shutdown() closes topics before the loop exits, causing
+            # 'publish() to a closed topic' ROSException.
+            # The launch file / area_explorer shutdown will tear down the node cleanly.
 
     def sync_gazebo_state(self):
         state = ModelState()

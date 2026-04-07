@@ -230,15 +230,12 @@ class Algo3Hybrid:
     def step(self):
         # 0. Measure State
         covered_area, total_area, current_cov_pct = self.manager.get_progress_stats()
-        
+
         if current_cov_pct >= 99.9:
-            # RESET GRID for continuous surveillance
-            self.manager.visited = [False] * self.manager.total_points
-            self.manager.visited_by = [-1] * self.manager.total_points
-            self.best_coverage = 0.0
-            self.no_gain_counter = 0
-            return "Surveillance Loop Reset"
-            
+            # Coverage complete — stop assigning new targets so is_complete() fires
+            return "Coverage Complete"
+
+
         # ---------------------------------------------------------
         # PROXIMITY CHECK (Anti-Cluster Force)
         # ---------------------------------------------------------

@@ -450,7 +450,7 @@ def test_drought_model():
     
     # Test 3: Feature extraction from CSV
     print("\n[Test 3] Feature Extraction from Kaggle Dataset:")
-    data_path = "/home/ros/catkin_ws/src/multi_drone_sim/us-drought-meteorological-data/versions/5/train_timeseries/train_timeseries.csv"
+    data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "us-drought-meteorological-data", "versions", "5", "train_timeseries", "train_timeseries.csv")
     
     if os.path.exists(data_path):
         features = model.extract_features_from_csv(data_path, lookback_days=90)

@@ -9,6 +9,7 @@ An intelligent multi-drone simulation system for autonomous agricultural monitor
 
 ## 📋 Table of Contents
 
+- [Changelog](#changelog)
 - [Overview](#overview)
 - [Key Features](#key-features)
 - [System Architecture](#system-architecture)
@@ -24,37 +25,84 @@ An intelligent multi-drone simulation system for autonomous agricultural monitor
 
 ## 🌟 Overview
 
-This project implements a sophisticated multi-drone coordination system designed for precision agriculture applications. The system deploys **11 autonomous drones (10 active + 1 backup)** to monitor **5 consolidated farmland areas**, assess drought risk using historical climate data, and dynamically allocate resources based on real-time sensor measurements.
+This project implements a sophisticated multi-drone coordination system designed for precision agriculture applications. The system deploys **11 autonomous drones** over a **unified 21.5 m × 21.5 m workspace**, assesses drought risk using historical climate data, dynamically allocates coverage partitions with Voronoi-based splitting, and recovers from mid-flight hardware failures by activating reserve drones.
 
 ### Real-World Application
 
 Climate change is increasing the frequency and severity of agricultural droughts. Our system helps farmers and agricultural managers by:
 - **Early drought detection** through multi-sensor analysis
-- **Full area coverage** with 2 drones per farmland area
-- **Intelligent resource allocation** prioritizing high-risk areas
+- **Full area coverage** with dynamic Voronoi partitioning across the unified field
+- **Intelligent resource allocation** with reserve-drone deployment on hardware failure
 - **Comprehensive monitoring** with centralized communication coordination
 
-### 🆕 Simulation Update (Feb 2026)
+---
 
-This system now runs **Algorithm 3 (Hybrid GOMWC + LERR + Shake)** for optimized coverage:
+## 📝 Changelog
 
-- **GOMWC (Greedy Overlap-Minimizing Waypoint Coverage)**: Optimized for closest-unvisited prioritization.
-- **Target-Based Repulsion (Proactive LERR)**: Drones proactively avoid targets chosen by others, preventing clustering.
-- **Proximity Shake**: Dynamic conflict resolution forces drones apart if they get too close (<2.5m).
-- **Global Locking**: Drones lock targets until arrival, ensuring stable flight paths.
-- **Adaptive Grid Density**: 
-    - **Area 2 & 5 (12m)**: 81 Waypoints (9x9).
-    - **Area 1, 3, 4 (10m)**: 49 Waypoints (7x7).
+### Session: 5 April 2026 — Reserve Drone & Stop-Condition Fixes
+
+**Files changed:** `scripts/area_explorer.py`, `scripts/algo3_sim.py`
+
+#### Bug Fix — Second reserve drone never entered the field
+When two drones died in the same heartbeat window, the Central Tower published two `DEPLOY_RESERVE` commands. Both backups were correctly dequeued, but the **old `BackupDrone.hold_position()` thread kept running** after promotion, continuously publishing zero-velocity `Twist()` commands that fought against the new `DroneExplorer`'s navigation output. The second reserve appeared frozen.
+
+- Added `self.deployed = False` flag to `BackupDrone.__init__`.
+- The `hold_position()` `while` loop guard is now `while not rospy.is_shutdown() and not self.deployed`.
+- The `DEPLOY_RESERVE` handler sets `bk.deployed = True` before creating the new `DroneExplorer`, cleanly exiting the old thread.
+- Also fixed: the promoted reserve's Voronoi position was seeded from `(0, 0)` (field corner). It is now initialised from the backup's **actual current pose** so partitioning is correct from the first step.
+
+#### Bug Fix — Simulation kept looping at 100% coverage instead of stopping
+The `algo3_sim.py` `step()` method previously **reset the entire grid** every time coverage reached 99.9% (continuous surveillance loop). This prevented `AreaCoverageController.is_complete()` from ever returning `True`, so the swarm ran forever.
+
+- Removed the grid-reset block in `Algo3Hybrid.step()`; at ≥ 99.9% it now returns `"Coverage Complete"` and stops assigning new targets.
+- Merged the two duplicate `if active_areas == 0` stop blocks in `area_explorer.py`'s main loop into a single, clean check: `if total_pct >= 100.0 or active_areas == 0:`.
+- `mission_pub.publish(Bool(data=True))` now fires **inside the main loop** the moment coverage completes, so UGVs park and the Central Tower shuts down immediately — not 5 seconds later at the end of `main()`.
+- Removed dead/unreachable code (lines after the original `break` that could never execute).
+
+---
+
+### Commit `69c7b75` — 3 April 2026: UGV Deadlocks, Crash Visuals, Dead-Drone Edge Cases
+
+**Files changed:** `models/dead_quadcopter/model.sdf`, `scripts/algo3_sim.py`, `scripts/area_explorer.py`, `scripts/energy_planner.py`, `scripts/ugv_manager.py`
+
+- **UGV deadlock fix**: Removed redundant local intercept logic from `ugv_manager.py` that caused both UGVs to target the same drone simultaneously, triggering oscillation and deadlock.
+- **Crash visuals**: Crashed drones are now teleported to `z = −100 m` (underground) to prevent Gazebo mutex-locking errors that occurred when spawning the static `dead_quadcopter` wreckage model while the physics engine still held a reference to the live model.
+- **Ghost cone fix**: The FOV cone `Marker` for a dead drone is explicitly deleted from RViz (using `Marker.action = DELETE`) immediately before the teleport, removing phantom visual artefacts.
+- **Dead-drone battery broadcast**: Upon drone death, the system immediately publishes a fake `100%` battery reading for that drone so UGVs do not attempt to drive to and charge a wreck.
+
+---
+
+### Commit `f6431ef` — 2 April 2026: Fleet Stagnation & Dynamic Reconfiguration
+
+**Files changed:** `config/areas.yaml`, `scripts/algo3_sim.py`, `scripts/area_explorer.py`, `scripts/central_agent.py`, `scripts/drone_comm.py`, `scripts/spawn_fleet.py`, `worlds/field_areas.world`
+
+- **`waiting_for_charge` stall fix**: Drones that returned to base for charging were stuck in a `waiting_for_charge` state after recharging. The state is now cleared as soon as battery exceeds 90%, allowing immediate mission resumption.
+- **Dead-drone communication silence**: `drone_comm.py` now listens to `/swarm/drone_death`; on receiving a dead drone's ID it stops responding to `HELLO` broadcasts, preventing the Central Tower from endlessly retrying dead units.
+- **Central Tower retry hardening** (`central_agent.py`): Added `HELLO_RETRY_<ID>` targeted unicast retries 2.2 s after each broadcast. Drones missing two consecutive heartbeat windows (> 15 s) are now classified as dead and a `DEPLOY_RESERVE` command is fired.
+- **Unified workspace** (`field_areas.world`, `areas.yaml`): The five scattered farmland circles were merged into a single **21.5 m × 21.5 m `unified_workspace`** rectangle. All drones now cover this shared space with dynamic Voronoi partitioning, eliminating inter-area boundary conflicts.
+- **Reserve-aware spawn** (`spawn_fleet.py`): Now reads `reserve_drones` from `areas.yaml`; reserve drones are spawned in a wider outer ring to avoid collisions with the active explorer formation at startup.
+
+---
+
+### Commit `8ed9f43` — 13 March 2026: Scanning Logic Fixed
+
+**Files changed:** `scripts/algo3_sim.py`, `scripts/area_explorer.py`
+
+- Fixed the scanning state machine so drones hold hover during the 1-second scan pause and only mark a waypoint as visited **after** `check_just_finished()` fires, preventing premature target clearance and the resulting "re-visit loop".
+- Introduced `just_finished` flag in `DroneExplorer` to separate the scan-complete event from the algo update tick, eliminating the waypoint double-count that inflated coverage percentages.
+
+---
+
 
 ## ✨ Key Features
 
 ### 🤖 Autonomous Drone Fleet Management
-- **11 autonomous quadcopters** (10 explorers + 1 backup)
-- **Fixed allocation**: 2 drones per farmland area for balanced coverage
+- **11 autonomous quadcopters** (up to 9 active explorers + 2 backup/reserve)
+- **Unified workspace coverage**: all explorers share one 21.5 m × 21.5 m field with dynamic Voronoi partitioning
 - **Multi-threaded execution** for parallel operations
 - **Collision avoidance** and safe navigation
-- **Dynamic role assignment** (Explorer, Backup)
-- **Distributed across 5 farmland areas** for complete coverage
+- **Dynamic role assignment** (Explorer → Reserve → promoted back to Explorer on demand)
+- **Hardware failure simulation**: two random drone deaths injected mid-mission with automatic reserve deployment
 
 ### 📊 Intelligent Drought Risk Assessment
 - **LSTM Neural Network** (PyTorch) trained on US Drought Monitor data:
@@ -186,17 +234,15 @@ We replaced the initial heuristic model with a fully trained **Long Short-Term M
 The model uses logistic mapping to provide probabilistic forecasts between 5% and 95% confidence levels.
 
 ### 2. **Intelligent Drone Allocation System**
-Our allocation algorithm ensures complete coverage with dynamic distribution:
-- **Coverage guarantee**: Every area gets at least 1 drone
-- **Distributed scaling**: Remaining drones added via round-robin
-- **Risk prioritization**: Higher-risk areas get first picks
-- **Real-world layout**: Scattered positioning (not grid-based)
+All 11 drones share **one unified workspace**. The allocator separates explorers from reserves:
+- **9 active explorers** cover the unified field under dynamic Voronoi partitioning
+- **2 reserve drones** hold position at spawn and are promoted to explorers if a failure is detected
+- Voronoi regions re-partition automatically whenever a drone dies or a reserve is activated
 
-**Example Allocation for 11 Drones / 5 Areas:**
+**Fleet configuration (9 explorers / 2 reserves for 11 drones):**
 ```
-Areas 1-5: 2 drones each (10 drones)
-Reserve: 1 backup drone
-Result: 2 drones per area + 1 backup
+Active explorers:  drone_0 … drone_8  (Voronoi-partitioned over unified_workspace)
+Reserve drones:    drone_9, drone_10  (hold at spawn, promoted on DEPLOY_RESERVE)
 ```
 
 ### 3. **Active UGV Charging System**
@@ -402,9 +448,9 @@ areas:
 Modify in `config/areas.yaml`:
 ```yaml
 allocation:
-  min_drones_per_area: 1    # Minimum drones per area (ensures coverage)
-  max_drones_per_area: 3    # Maximum drones per area
-  reserve_drones: 0         # All drones assigned to areas
+  min_drones_per_area: 9    # Minimum active explorers
+  max_drones_per_area: 11   # Maximum (full fleet)
+  reserve_drones: 2         # Held at spawn, deployed on failure
   measurement_noise: 0.15
   idle_measurement_noise: 0.05
   boundary_soft_margin: 0.4
@@ -418,14 +464,17 @@ num_drones: 11              # Total drone fleet size
 
 start_position:
   x: 0.0
-  y: -20.0                  # Spawn position (away from farmlands)
-  z: 2.0
+  y: -20.0                  # Spawn outside the 21.5×21.5 m field
+  z: 3.5                    # Spawn altitude
 
-battery:
-  capacity: 800             # mAh (Reduced for simulation speed)
-  start_charge_min: 40      # %
-  start_charge_max: 90      # %
+# Battery parameters are set in area_explorer.py:
+#   Battery(capacity_mah=1500)   — 1500 mAh capacity
+#   Initial charge: 100% (drones start fully charged)
 ```
+
+> **Note:** Drones are spawned in a circle of radius **16 m** centred at (0, 0).
+> Explorer drones take the first `num_drones − reserve_drones` slots;
+> reserve drones are placed at evenly-spaced angular positions around the same ring.
 
 ## 🔬 Technical Details
 
@@ -478,25 +527,24 @@ wᵢ = 1 / σ²ᵢ                    # Weight inversely proportional to varianc
 - **Cost Function**: Uniform cost (shortest path)
 - **Fallback**: Direct P-Control if no path found
 
-## 📊 System Specifications
+### System Specifications
 
-### Fleet Composition
-- **Total Drones**: 11 autonomous quadcopters
-- **Allocation Strategy**: Fixed 2 per area + 1 backup
-- **Coverage**: 5 consolidated circular farmland areas
-- **Spawn Position**: (0, -20, 2) - away from active zones
-
-### Farmland Layout
-- **Area Count**: 5 circular patches
-- **Layout**: Scattered, realistic distribution
-- **Radii**: Mix of 5-6 unit radii for varied area sizes
-- **Overlap**: Strategic overlapping in select regions
-
-### Performance Metrics
-- **Mission Success Rate**: 100% (all drones reach assigned areas)
-- **Position Accuracy**: ±0.2m (within area boundaries)
-- **Execution Time**: ~40 seconds for full 11-drone deployment
-- **Coverage Time**: ~120-180 seconds per area exploration
+| Parameter | Value |
+|-----------|-------|
+| Total Drones | 11 |
+| Active Explorers | 9 |
+| Reserve Drones | 2 |
+| Unified Workspace | 21.5 m × 21.5 m |
+| Spawn Radius | 16 m (circle centred at origin) |
+| Waypoint Grid Spacing | 1.5 m |
+| Battery Capacity | 1500 mAh |
+| Low-Battery Threshold | 30% (UGV dispatch trigger) |
+| Critical-Battery Threshold | 20% (drone returns to base) |
+| UGV Charging Dwell | 1 s (then instant 100% charge command) |
+| UGV Navigation Grid | 2 m resolution, 50 × 50 Dijkstra grid |
+| Failure 1 Trigger | Random between 10 – 25% field coverage |
+| Failure 2 Trigger | Random between 50 – 70% field coverage |
+| Heartbeat Timeout | 15 s (Central Tower classifies drone as dead) |
 
 ## 🎯 Use Cases
 
@@ -536,37 +584,49 @@ source ~/catkin_ws/devel/setup.bash
 ```
 multi_drone_sim/
 ├── config/
-│   └── areas.yaml                    # 5 area definitions, 11 drone config
-├── include/
-│   └── multi_drone_sim/              # C++ headers (if needed)
+│   └── areas.yaml                    # Unified workspace definition, fleet & allocation config
+├── documentation/
+│   ├── project_documentation.tex     # Full LaTeX technical document
+│   └── project_documentation.pdf     # Compiled PDF
 ├── launch/
 │   ├── multi_drone_sim.launch        # Main simulation launcher
 │   ├── spawn_drones.launch           # 11 drone spawning
 │   └── explore_areas.launch          # Exploration mission
 ├── logs/
-│   └── drought_allocation.log        # Mission reports
+│   ├── connection_report.log         # Heartbeat / handshake events
+│   ├── drought_allocation.log        # Risk-based drone allocation
+│   └── mission_summary.log           # Complete mission statistics
 ├── LSTM/
 │   ├── lstm_model.pth            # Trained PyTorch Model weights
 │   └── model.py                  # LSTM Class Definition
-├── LSTM_GUIDE.md                 # Documentation for Model Training
-├── LSTM_TRAINING_README.md       # Original Training Notes
 ├── models/
-│   └── quadcopter/                   # Drone 3D model
+│   ├── dead_quadcopter/              # Static wreckage SDF (spawned on drone death)
+│   └── quadcopter/                   # Live drone 3D model
 │       ├── model.config
-│       └── model.sdf
+│       ├── model.sdf                 # Full model with FOV cone mesh
+│       └── model_no_fov.sdf          # Variant without cone (lightweight)
 ├── scripts/
-│   ├── area_explorer.py              # Risk model & allocation
-│   ├── drought_probability_model.py  # Inference Engine (LSTM + Fallback)
-│   ├── multi_drone_navigator.py      # Navigation & sensors
-│   └── drone_controller.py           # Low-level control
-├── src/                              # C++ source files (if needed)
+│   ├── algo3_sim.py                  # Algo 3: GOMWC + LERR + Shake + Voronoi partitioning
+│   ├── area_allocation.py            # Legacy risk-based allocator (research reference)
+│   ├── area_explorer.py              # Main mission controller & ROS node entry point
+│   ├── central_agent.py              # Central Tower: heartbeat, handshake, DEPLOY_RESERVE
+│   ├── drone_comm.py                 # Virtual drone comms relay; silences dead drones
+│   ├── drone_controller.py           # Low-level PID drone controller
+│   ├── drought_probability_model.py  # LSTM inference wrapper
+│   ├── energy_planner.py             # Multi-UGV Dijkstra path planner & charging logic
+│   ├── sensor_fault_detection.py     # Statistical fault detection
+│   ├── spawn_fleet.py                # Gazebo SDF spawner (ring layout, reserve-aware)
+│   ├── swarm_localization.py         # UWB-based decentralised ranging (INFOCOM 2021)
+│   ├── ugv_comm.py                   # UGV comms relay (mirrors drone_comm for UGVs)
+│   ├── ugv_manager.py                # Mobile UGV physics, patrol, proximity charging
+│   └── uwb_simulator.py              # Simulated UWB range measurements
 ├── worlds/
-│   └── field_areas.world             # Gazebo world (10 circular areas)
-├── CMakeLists.txt                    # Build configuration
-├── package.xml                       # ROS package manifest
-├── start_simulation.sh               # Quick-start script
-├── start_exploration.sh              # Exploration launcher
-└── README.md                         # This file
+│   └── field_areas.world             # Gazebo world: unified green field + models
+├── CMakeLists.txt
+├── package.xml
+├── start_simulation.sh
+├── start_exploration.sh
+└── README.md
 ```
 
 ## 🤝 Contributing
@@ -613,13 +673,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] **LSTM Integration**: Replace heuristic model with Deep Learning (Done).
 - [x] **Swarm Ranging**: Implement decentralized UWB protocol (Done).
 - [x] **Energy Planning**: Implement UGV rendezvous reasoning (Done).
+- [x] **Unified Workspace**: Merge scattered areas into single dynamic Voronoi-partitioned field (Done).
+- [x] **Hardware Failure Detection & Reserve Deployment**: Two mid-flight failures simulated; reserves auto-deployed via Central Tower heartbeat timeout (Done).
+- [x] **Stop at 100% Coverage**: Simulation halts all drones and UGVs the instant full coverage is confirmed (Done).
 - [ ] **Hardware Deployment**: Port to Bitcraze Crazyflie 2.1 swarm for real-world field testing.
 - [ ] **Live Weather**: Connect to OpenWeatherMap API.
 - [ ] Real hardware deployment (DJI, Pixhawk)
 - [ ] Web-based dashboard for monitoring
 - [ ] Integration with satellite imagery
 - [ ] Collaborative SLAM for area mapping
-- [ ] Dynamic task reassignment mid-mission
 
 ---
 

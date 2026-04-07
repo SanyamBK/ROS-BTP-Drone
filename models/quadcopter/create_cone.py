@@ -1,5 +1,6 @@
 import numpy as np
 import struct
+import os
 
 def write_obj(filename, radius, height, segments=32):
     # Cone Tip at (0,0,0)
@@ -38,4 +39,4 @@ def write_obj(filename, radius, height, segments=32):
             f.write(f"f {base_center_idx} {next_idx} {curr_idx}\n")
 
 if __name__ == "__main__":
-    write_obj('/home/ros/catkin_ws/src/multi_drone_sim/models/quadcopter/cone.obj', 1.0, 1.0)
+    write_obj(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cone.obj'), 1.0, 1.0)

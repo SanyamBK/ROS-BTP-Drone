@@ -3,7 +3,7 @@
 import rospy
 import os
 from datetime import datetime
-from std_msgs.msg import String, Bool
+from std_msgs.msg import String, Bool, Float32
 
 class CentralAgent:
     def __init__(self):
@@ -19,8 +19,10 @@ class CentralAgent:
         self.pub = rospy.Publisher('/central/comm', String, queue_size=20)
         self.sub = rospy.Subscriber('/comm/agents', String, self.callback)
 
-        # Mission end hook
+        # Mission end hooks
+        self.mission_complete = False
         self.mission_sub = rospy.Subscriber('/mission_complete', Bool, self.on_mission_complete)
+        self.coverage_sub = rospy.Subscriber('/system/coverage_pct', Float32, self.on_coverage_update)
 
         # Heartbeat tracking and Control Channel
         self.last_seen_time = {}
@@ -46,14 +48,27 @@ class CentralAgent:
 
     def on_mission_complete(self, msg: Bool):
         """Stop chatter when missions are done."""
-        if msg.data:
+        if msg.data and not self.mission_complete:
+            self.mission_complete = True
             rospy.loginfo(f"[{self.node_id}] Mission complete signal received. Shutting down beacon.")
             self._log_to_file(f"[{self.node_id}] Mission complete signal received. Shutting down beacon.")
-            try:
-                self.timer.shutdown()
-            except Exception:
-                pass
+            self._shutdown_timer()
             rospy.signal_shutdown("Mission complete")
+
+    def on_coverage_update(self, msg: Float32):
+        """Shut down HELLO broadcasts the moment 100% coverage is confirmed."""
+        if msg.data >= 100.0 and not self.mission_complete:
+            self.mission_complete = True
+            rospy.loginfo(f"[{self.node_id}] 100% coverage confirmed via /system/coverage_pct — stopping beacon.")
+            self._log_to_file(f"[{self.node_id}] 100% coverage reached. HELLO broadcasts halted.")
+            self._shutdown_timer()
+
+    def _shutdown_timer(self):
+        """Safely stop the periodic HELLO timer."""
+        try:
+            self.timer.shutdown()
+        except Exception:
+            pass
 
     def broadcast_hello(self, event):
         """Step 1: Broadcast HELLO (SYN) to all units"""
@@ -76,7 +91,7 @@ class CentralAgent:
         self.pending_responses = self.known_drones.copy()
 
         msg = "HELLO"
-        rospy.loginfo(f"[{self.node_id}] >>> Broadcasting: {msg} (expecting {len(self.pending_responses)} responses)")
+        rospy.loginfo(f"[{self.node_id}] >>> Broadcasting: {msg} ({len(self.known_drones)} known agents, {len(self.pending_responses)} awaiting response)")
         self._log_to_file(f"[{self.node_id}] >>> Broadcasting: {msg}")
         self.pub.publish(msg)
 

@@ -1,5 +1,5 @@
 MULTI-DRONE MISSION SUMMARY
-Generated (UTC): 2026-04-04 21:28:19
+Generated (UTC): 2026-04-06 16:00:40
 
 Central Agent: Tower beacon stopped after mission_complete (HELLO/ACK queue drained)
 UGV Chargers: Parked after mission_complete signal
@@ -12,14 +12,14 @@ unified_workspace (  0.0,  0.0)  green     [0, 1, 2, 3, 4, 5, 6, 7, 8]
 Drone docking/finish states:
 Drone  Role       Area       Final (x,y)     Status      Notes
 -----  ---------  ---------  --------------  ----------  ---------------------------
-0      explorer   unified_workspace  --              n/a         
-1      explorer   unified_workspace  --              n/a         
-2      explorer   unified_workspace  --              n/a         
+0      explorer   unified_workspace  (6.4, 6.7)      aborted     Mission Timeout/Ending
+1      explorer   unified_workspace  (2.4, 2.3)      aborted     Mission Timeout/Ending
+2      explorer   unified_workspace  (-3.7, 6.4)     aborted     Mission Timeout/Ending
 3      explorer   unified_workspace  --              n/a         
-4      explorer   unified_workspace  --              n/a         
-5      explorer   unified_workspace  --              n/a         
-6      explorer   unified_workspace  --              n/a         
-7      explorer   unified_workspace  --              n/a         
+4      explorer   unified_workspace  (-5.6, -0.1)    aborted     Mission Timeout/Ending
+5      explorer   unified_workspace  (-3.2, -5.3)    aborted     Mission Timeout/Ending
+6      explorer   unified_workspace  (-0.4, 0.1)     aborted     Mission Timeout/Ending
+7      explorer   unified_workspace  (3.9, -4.5)     aborted     Mission Timeout/Ending
 8      explorer   unified_workspace  --              n/a         
-9      backup     staging    --              n/a         
-10     backup     staging    --              n/a         
+9      backup     staging    (16.0, 0.0)     reserve     Idle drought reserve drone
+10     backup     staging    (-15.4, 4.5)    reserve     Idle drought reserve drone

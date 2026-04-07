@@ -62,7 +62,8 @@ def analyze_drought_risk(area_name, area_config):
     
     # 1. Try LSTM Prediction (highest priority)
     probability = None
-    data_path = "/home/ros/catkin_ws/src/multi_drone_sim/us-drought-meteorological-data/versions/5/train_timeseries/train_timeseries.csv"
+    _pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data_path = os.path.join(_pkg_root, "us-drought-meteorological-data", "versions", "5", "train_timeseries", "train_timeseries.csv")
     
     if os.path.exists(data_path):
         probability = model.predict_from_csv(data_path)
@@ -566,7 +567,8 @@ class DroneExplorer:
                     x = self.current_pose.position.x
                     y = self.current_pose.position.y
                     # Spawn dead drone wreckage flipped over
-                    model_path = "/home/ros/catkin_ws/src/multi_drone_sim/models/dead_quadcopter/model.sdf"
+                    _pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    model_path = os.path.join(_pkg_root, "models", "dead_quadcopter", "model.sdf")
                     spawn_cmd = f"rosrun gazebo_ros spawn_model -sdf -file {model_path} -model dead_drone_{self.drone_id} -x {x} -y {y} -z 0.05 -R 3.14 -P 0.1"
                     subprocess.Popen(spawn_cmd, shell=True)
                     
@@ -965,6 +967,7 @@ class BackupDrone:
         self.current_pose = None
         self.result_aggregator = result_aggregator
         self.measurement_noise = abs(measurement_noise)
+        self.deployed = False  # Set True when this backup is promoted to an active explorer
 
         self.actual_probability = 0.0
         self.measured_probability = clamp(
@@ -998,38 +1001,33 @@ class BackupDrone:
     def hold_position(self):
         """Maintain position at starting location"""
         rate = rospy.Rate(5)  # 5 Hz (less frequent than explorers)
-        
-        while not rospy.is_shutdown():
+
+        while not rospy.is_shutdown() and not self.deployed:
             # Check if we have a valid pose
             if self.current_pose is None:
                 if self.drone_id == 0 and random.random() < 0.05:
                     rospy.logwarn(f"[Drone {self.drone_id}] Waiting for odometry on 'drone_{self.drone_id}/odom'...")
                 rospy.sleep(0.1)
                 continue
-            
-            try:
-                rate.sleep()
-            except rospy.ROSInterruptException:
-                break
-            
+
             # Calculate distance from start position
             dx = self.start_pos['x'] - self.current_pose.position.x
             dy = self.start_pos['y'] - self.current_pose.position.y
             distance = sqrt(dx*dx + dy*dy)
-            
+
             # Altitude hold logic
             target_altitude = 2.0 + (self.drone_id % 3) * 0.5
             dz = target_altitude - self.current_pose.position.z
             z_cmd = max(-0.5, min(0.5, 2.0 * dz))
-            
+
             cmd = Twist()
             cmd.linear.z = z_cmd
-            
+
             # If drifted too far from start, return to position
             if distance > 1.0:  # More than 1m from start
                 cmd.linear.x = min(0.5, distance * 0.3)
                 angle = atan2(dy, dx)
-                
+
                 # Calculate yaw error to steer towards target
                 q = self.current_pose.orientation
                 import tf.transformations as tf_trans
@@ -1038,9 +1036,9 @@ class BackupDrone:
                 import math
                 while yaw_err > math.pi: yaw_err -= 2*math.pi
                 while yaw_err < -math.pi: yaw_err += 2*math.pi
-                
+
                 cmd.angular.z = max(-0.5, min(0.5, yaw_err))
-                
+
             self.cmd_vel_pub.publish(cmd)
 
             if self.result_aggregator and self.current_pose is not None and not rospy.is_shutdown():
@@ -1058,17 +1056,21 @@ class BackupDrone:
                 }
                 self.result_aggregator.add_result(summary)
                 self.result_aggregator = None
-            
+
             try:
                 rate.sleep()
             except rospy.ROSInterruptException:
                 break
+
+        if self.deployed:
+            rospy.loginfo(f"[BackupDrone {self.drone_id}] Promoted to explorer — hold_position thread exiting.")
 
 
 def main():
     rospy.init_node('area_explorer_node')
 
     mission_pub = rospy.Publisher('/mission_complete', Bool, queue_size=1, latch=True)
+    coverage_pub = rospy.Publisher('/system/coverage_pct', Float32, queue_size=1, latch=True)
     
     # Load configuration
     config_path = rospy.get_param('~config_path', 
@@ -1148,7 +1150,8 @@ def main():
 
     # 1. Load configuration
     rospy.loginfo("[Main] Loading area configuration...")
-    config_path = rospy.get_param('~area_config_path', "/home/ros/catkin_ws/src/multi_drone_sim/config/areas.yaml")
+    _pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    config_path = rospy.get_param('~area_config_path', os.path.join(_pkg_root, "config", "areas.yaml"))
     rospy.loginfo("")
     rospy.loginfo("FARMLAND DROUGHT PRIORITISATION:")
     rospy.loginfo("-" * 60)
@@ -1323,10 +1326,13 @@ def main():
                     drone_to_kill.cmd_vel_pub.publish(Twist())
                     drone_to_kill.exploration_complete = True
                     drone_to_kill.is_dead = True
-                    
+
                     new_active = [i for i in range(len(controller.drone_explorers)) if i not in dead_drones]
                     controller.algo.update_active_drones(new_active)
                     rospy.logwarn(f"Reconfiguring workspace partitions. Active drones: {len(new_active)}")
+                    # Directly request a reserve — don't wait for the Central Tower's
+                    # 15-second heartbeat timeout (dead drone may never have been in known_drones).
+                    central_commands.append("DEPLOY_RESERVE")
 
             # TRIGGER FAILURE 2
             if pct > fail_thresh_2 and not failure_2_triggered:
@@ -1341,10 +1347,12 @@ def main():
                     drone_to_kill.cmd_vel_pub.publish(Twist())
                     drone_to_kill.exploration_complete = True
                     drone_to_kill.is_dead = True
-                    
+
                     new_active = [i for i in range(len(controller.drone_explorers)) if i not in dead_drones]
                     controller.algo.update_active_drones(new_active)
                     rospy.logwarn(f"Reconfiguring workspace partitions. Active drones: {len(new_active)}")
+                    # Same as failure 1 — bypass heartbeat timeout for instant deployment.
+                    central_commands.append("DEPLOY_RESERVE")
 
             # PROCESS CENTRAL COMMANDS (one per tick to avoid draining backups in same frame)
             if central_commands:
@@ -1353,6 +1361,8 @@ def main():
                     if len(backups) > 0:
                         rospy.logwarn("DEPLOYING 1 RESERVE DRONE FROM TIMEOUT!")
                         bk = backups.pop(0)
+                        # Signal the backup's hold_position thread to exit
+                        bk.deployed = True
                         # Promote Backup to Explorer
                         new_explorer = DroneExplorer(
                             bk.drone_id,
@@ -1367,19 +1377,26 @@ def main():
                             group_size=num_drones,
                             drought_probability=area_profiles[controller.area_name]['probability']
                         )
-                        new_explorer.current_pose = bk.current_pose 
-                        
+                        new_explorer.current_pose = bk.current_pose
+
                         local_id = len(controller.drone_explorers)
                         controller.drone_explorers.append(new_explorer)
                         controller.local_to_global[local_id] = new_explorer.drone_id
-                        
+
                         controller.algo.num_drones += 1
                         controller.algo.drone_targets[local_id] = -1
-                        controller.algo.drone_positions[local_id] = (0, 0)
-                        
+                        # Seed the algo with the drone's real position (local coords) so
+                        # Voronoi partitioning is correct from the first step, not (0,0).
+                        if bk.current_pose is not None:
+                            init_lx = bk.current_pose.position.x - controller.origin_x
+                            init_ly = bk.current_pose.position.y - controller.origin_y
+                        else:
+                            init_lx, init_ly = 0.0, 0.0
+                        controller.algo.drone_positions[local_id] = (init_lx, init_ly)
+
                         new_active_list = [i for i in range(len(controller.drone_explorers)) if i not in dead_drones]
                         controller.algo.update_active_drones(new_active_list)
-                    
+
                         rospy.logwarn(f"Reserve {bk.drone_id} online. Workspaces reconfigured again! Active count: {len(new_active_list)}")
                     else:
                         rospy.logerr("Received DEPLOY_RESERVE but no reserves left!")
@@ -1391,32 +1408,29 @@ def main():
             v, t, _ = controller.grid_manager.get_progress_stats()
             total_covered += v
             total_pts += t
-            
+
         total_pct = (total_covered / total_pts * 100.0) if total_pts > 0 else 0.0
+        coverage_pub.publish(Float32(data=total_pct))
         rospy.loginfo_throttle(10, f"[SYSTEM] Total Field Coverage: {total_pct:.1f}%")
 
-        if active_areas == 0:
-            rospy.loginfo("All areas covered!")
-            rospy.loginfo("Stopping all drones...")
-            # Ensure everyone gets a final stop command
+        if total_pct >= 100.0 or active_areas == 0:
+            rospy.loginfo(f"[SYSTEM] *** COVERAGE COMPLETE ({total_pct:.1f}%) — Stopping all drones and UGVs ***")
+            # Send stop command to every drone (explorers + any promoted reserves)
             for controller in area_controllers:
                 for drone in controller.drone_explorers:
-                     drone.cmd_vel_pub.publish(Twist())
-            break
-
-            total_pts += t
-            
-        total_pct = (total_covered / total_pts * 100.0) if total_pts > 0 else 0.0
-        rospy.loginfo_throttle(10, f"[SYSTEM] Total Field Coverage: {total_pct:.1f}%")
-
-        if active_areas == 0:
-            rospy.loginfo("All areas covered!")
+                    drone.cmd_vel_pub.publish(Twist())
+            # Signal UGVs and central tower to stop immediately
+            try:
+                mission_pub.publish(Bool(data=True))
+            except Exception:
+                pass
             break
 
         try:
             rate.sleep()
         except rospy.ROSInterruptException:
             break
+
     
     # Summarize
     for explorer in explorers:
@@ -1443,6 +1457,8 @@ def main():
     except Exception:
         pass
     rospy.sleep(5.0)
+    rospy.loginfo("[Shutdown] Closing all drone nodes...")
+    rospy.loginfo("[Shutdown] area_explorer_node shutting down. Goodbye.")
     rospy.signal_shutdown("All missions completed")
 
 
