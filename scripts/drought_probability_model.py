@@ -92,10 +92,11 @@ class DroughtProbabilityModel:
 
         # LSTM Model
         self.lstm_model = None
+        self._repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self._ref_seq_path = os.path.join(self._repo_root, 'LSTM', 'reference_sequence.npy')
         if HAS_TORCH:
-            # Model is now in LSTM/lstm_model.pth at the repo root
-            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            model_path = os.path.join(repo_root, 'LSTM', 'lstm_model.pth')
+            # Weights live in LSTM/lstm_model.pth (committed to repo, ~200KB)
+            model_path = os.path.join(self._repo_root, 'LSTM', 'lstm_model.pth')
             
             if os.path.exists(model_path):
                 try:
@@ -233,31 +234,63 @@ class DroughtProbabilityModel:
             print(f"[DroughtModel] Sequence extraction error: {e}")
             return []
 
-    def predict_from_csv(self, csv_path: str) -> float:
+    def predict_from_reference_sequence(self) -> float:
         """
-        Run LSTM inference on CSV data. Returns None if model not available.
+        Run LSTM inference using the pre-extracted reference sequence
+        (LSTM/reference_sequence.npy).  This works on any machine without
+        needing the raw 2GB CSV dataset.
+        Returns None if the model or the .npy file is unavailable.
         """
         if not HAS_TORCH or self.lstm_model is None:
             return None
-            
+
         try:
-            # Get raw sequence (90, 6)
-            seq = self.extract_raw_sequence(csv_path)
-            if not seq or len(seq) != 90:
+            import numpy as np
+            if not os.path.exists(self._ref_seq_path):
+                print(f"[DroughtModel] Reference sequence not found at {self._ref_seq_path}")
                 return None
-            
-            # Convert to Tensor (1, 90, 6)
-            input_tensor = torch.tensor([seq], dtype=torch.float32)
-            
-            # Inference
+
+            seq = np.load(self._ref_seq_path)  # shape (90, 6)
+            if seq.shape != (90, 6):
+                print(f"[DroughtModel] Unexpected reference sequence shape: {seq.shape}")
+                return None
+
+            input_tensor = torch.tensor([seq.tolist()], dtype=torch.float32)  # (1, 90, 6)
             with torch.no_grad():
                 prob = self.lstm_model(input_tensor).item()
-            
+
             return float(clip(prob, 0.05, 0.95))
-            
+
         except Exception as e:
-            print(f"[DroughtModel] Inference failure: {e}")
+            print(f"[DroughtModel] Reference sequence inference failure: {e}")
             return None
+
+    def predict_from_csv(self, csv_path: str) -> float:
+        """
+        Run LSTM inference on CSV data.
+        If the CSV is not present, automatically falls back to the pre-extracted
+        reference sequence (LSTM/reference_sequence.npy) so inference still works
+        on machines that don't have the raw dataset.
+        Returns None if neither the CSV nor the reference sequence is available.
+        """
+        if not HAS_TORCH or self.lstm_model is None:
+            return None
+
+        # --- Primary path: live CSV ---
+        if os.path.exists(csv_path):
+            try:
+                seq = self.extract_raw_sequence(csv_path)
+                if seq and len(seq) == 90:
+                    input_tensor = torch.tensor([seq], dtype=torch.float32)
+                    with torch.no_grad():
+                        prob = self.lstm_model(input_tensor).item()
+                    return float(clip(prob, 0.05, 0.95))
+            except Exception as e:
+                print(f"[DroughtModel] CSV inference failure: {e}")
+
+        # --- Fallback: pre-extracted reference sequence ---
+        print("[DroughtModel] CSV unavailable, using reference sequence for LSTM inference")
+        return self.predict_from_reference_sequence()
     
     def extract_features_from_csv(self, csv_path: str, lookback_days: int = 90) -> Dict[str, float]:
         """
