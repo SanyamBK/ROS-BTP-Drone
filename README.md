@@ -12,12 +12,14 @@ An intelligent multi-drone simulation system for autonomous agricultural monitor
 - [Changelog](#changelog)
 - [Overview](#overview)
 - [Key Features](#key-features)
-- [Technical Architecture & API](#-technical-architecture--api)
+- [System Architecture](#system-architecture)
 - [What We've Built](#what-weve-built)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
+- [Technical Details](#technical-details)
+- [Codebase & API Reference](#codebase--api-reference)
 - [Results](#results)
 - [Contributing](#contributing)
 - [License](#license)
@@ -170,7 +172,73 @@ The system's architecture is built upon the following key research papers:
 - **Real-time status updates** via ROS topics
 - **Comprehensive logging** for mission analysis:
   - `connection_report.log` - Communication events and handshakes
+  - `drought_allocation.log` - Risk-based drone allocation
+  - `mission_summary.log` - Complete mission statistics
 
+## 📡 ROS Communication Architecture
+
+The system relies on a distributed node architecture with specific topics for command, control, and coordination:
+
+| Node Name | Function | Published Topics | Subscribed Topics |
+|-----------|----------|------------------|-------------------|
+| `central_agent` | Fleet Command Tower | `/central/comm` (String) | `/comm/agents` (String)<br>`/mission_complete` (Bool) |
+| `drone_comm_manager` | Drone Comm. Relay (10 drones) | `/comm/agents` (String) | `/central/comm` (String) |
+| `ugv_comm_manager` | UGV Comm. Relay (2 UGVs) | `/comm/agents` (String) | `/central/comm` (String) |
+| `area_explorer` (x11) | Drone Autonomy | `/drone_{id}/cmd_vel` (Twist)<br>`/drone_{id}/battery` (Float32) | `/drone_{id}/odom` (Odometry)<br>`/drone_{id}/charge_cmd` (Float32) |
+| `ugv_manager` (x2) | Mobile Charging Station | `/ugv_{id}/odom` (Odometry)<br>`/ugv_{id}/charging_active` (Bool) | `/drone_{id}/odom` (Odometry)<br>`/drone_{id}/battery` (Float32)<br>`/mission_complete` (Bool) |
+
+### Key Topic Functions
+- **`/central/comm`**: Global broadcast channel for the Central Tower (e.g., `HELLO`).
+- **`/comm/agents`**: Return channel for Distributed Agents (e.g., `AGENT_HI_DRONE_5`, `AGENT_HI_UGV_1`).
+- **`/drone_{id}/odom`**: Local odometry data for each drone (simulated GPS/IMU).
+- **`/mission_complete`**: Mission completion signal triggering graceful shutdown.
+
+### Communication Protocol: 3-Way Handshake
+
+```
+Central Tower                          Agents (Drones/UGVs)
+     |                                          |
+     |  ──────── HELLO (broadcast) ──────────> |  (Step 1)
+     |                                          |
+     |  <──── AGENT_HI_{ID} (with delay) ────  |  (Step 2)
+     |         (queued for processing)          |
+     |                                          |
+     |  ──────── TOWER_ACK_{ID} ─────────────> |  (Step 3)
+     |                                          |
+     |        Connection Established ✓          |
+     |  (logged to connection_report.log)       |
+```
+
+## 🏗️ System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Gazebo Simulation                         │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │ Drone 0  │  │ Drone 1  │  │  ...     │  │ Drone 10 │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+│                                                              │
+│  5 Consolidated Circular Farmland Areas                      │
+│  ├─ Area 1-5 (larger, consolidated regions)                │
+│  └─ Some overlapping regions for collaborative coverage    │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                    ┌───────▼───────┐
+                    │   ROS Network │
+                    └───────┬───────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+┌───────▼────────┐  ┌──────▼──────┐  ┌────────▼────────┐
+│ area_explorer  │  │multi_drone  │  │ drone_controller│
+│     .py        │  │ _navigator  │  │      .py        │
+│                │  │    .py      │  │                 │
+│ • Risk Model   │  │ • Navigator │  │ • Low-level    │
+│ • Allocation   │  │ • Sensors   │  │   Control      │
+│ • Mission      │  │ • Fusion    │  │ • PID Control  │
+│   Planning     │  │ • Markers   │  │ • Odometry     │
+└────────────────┘  └─────────────┘  └─────────────────┘
+```
 
 ## 🔨 What We've Built
 
@@ -428,7 +496,79 @@ start_position:
 > Explorer drones take the first `num_drones − reserve_drones` slots;
 > reserve drones are placed at evenly-spaced angular positions around the same ring.
 
+## 🔬 Technical Details
 
+### Drought Risk Model (LSTM)
+
+**Input Tensor (Sequence):** `(1, 90, 6)`
+**Features:**
+1.  **PRECTOT**: Precipitation
+2.  **QV2M**: Specific Humidity (Soil Proxy)
+3.  **T2M_MAX**: Max Temperature
+4.  **T2M_MIN**: Min Temperature
+5.  **TS**: Earth Skin Temperature (Veg Stress Proxy)
+6.  **PS**: Surface Pressure
+
+**Output:** Single float `0.0 - 1.0` representing normalized drought risk.
+
+### Navigation Algorithm
+
+**Waypoint Controller:**
+```python
+1. Calculate distance and angle to target
+2. Rotate to face target
+3. Move forward with speed proportional to distance
+4. Decelerate near target (threshold: 0.5m)
+5. Hover when reached (threshold: 0.3m)
+```
+
+**Exploration Pattern:**
+```python
+1. Divide circular area into grid cells
+2. Generate waypoints covering each cell
+3. Visit waypoints in sequence
+4. Take sensor measurements at each point
+5. Aggregate measurements for area assessment
+```
+
+### Sensor Fusion Algorithm
+
+**Variance-weighted fusion:**
+```python
+σ²ᵢ = sensor_i_variance
+wᵢ = 1 / σ²ᵢ                    # Weight inversely proportional to variance
+μ_fused = Σ(wᵢ × μᵢ) / Σ(wᵢ)   # Weighted average
+σ²_fused = 1 / Σ(wᵢ)            # Combined variance
+```
+
+### UGV Path Planning
+- **Algorithm**: Dijkstra's Algorithm (Grid-based)
+- **Resolution**: 2.0m grid cells
+- **Cost Function**: Uniform cost (shortest path)
+- **Fallback**: Direct P-Control if no path found
+
+### System Specifications
+
+| Parameter | Value |
+|-----------|-------|
+| Total Drones | 11 |
+| Active Explorers | 9 |
+| Reserve Drones | 2 |
+| Unified Workspace | 21.5 m × 21.5 m |
+| Spawn Radius | 16 m (circle centred at origin) |
+| Waypoint Grid Spacing | 1.5 m |
+| Battery Capacity | 1500 mAh |
+| Low-Battery Threshold | 30% (UGV dispatch trigger) |
+| Critical-Battery Threshold | 20% (drone returns to base) |
+| UGV Charging Dwell | 1 s (then instant 100% charge command) |
+| UGV Navigation Grid | 2 m resolution, 50 × 50 Dijkstra grid |
+| Failure 1 Trigger | Random between 10 – 25% field coverage |
+| Failure 2 Trigger | Random between 50 – 70% field coverage |
+| Heartbeat Timeout | 15 s (Central Tower classifies drone as dead) |
+
+## 📖 Codebase & API Reference
+
+For a comprehensive breakdown of the core ROS nodes, Machine Learning inference logic, battery tracking, and individual Python classes, please refer to the fully detailed **[API & Codebase Reference](CODEBASE_REFERENCE.md)** document.
 
 ## 🎯 Use Cases
 
