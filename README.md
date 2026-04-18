@@ -39,6 +39,25 @@ Climate change is increasing the frequency and severity of agricultural droughts
 
 ## 📝 Changelog
 
+### Session: 18 April 2026 — Portable LSTM Inference & Realistic Swarm Deployment
+
+**Files changed:** `launch/explore_areas.launch`, `scripts/area_explorer.py`, `scripts/drought_probability_model.py`
+
+#### Feature Enhancement: Portable LSTM Inference (Repository Lightweighting)
+- **Requirement:** The 2GB Kaggle Meteorological dataset prevented pushing the repository to external hosts seamlessly.
+- **Solution:** Extracted a lightweight 90-day sequential slice of the required meteorological fields (`LSTM/reference_sequence.npy`, ~2.9 KB).
+- **Implementation:** `drought_probability_model.py` now attempts to natively load the massive CSV first. If omitted for portability, it seamlessly catches the `FileNotFoundError` and defaults to the reference sequence payload. The complex LSTM inference logic now functions identically on any cloned machine out of the box!
+
+#### Feature Enhancement: Realistic P2P Crash Signaling & Delayed Deployment
+- **Fix:** Swarm members no longer cheat by instantly deploying reserves upon hardware failures. Failing drones now broadcast a localized peer-to-peer (P2P) ad-hoc SOS signal.
+- **Local Adaptation:** Nearby active drones capture this SOS metric and dynamically absorb the dead vehicle's coverage Voronoi-sector natively and instantly.
+- **Tower Restocking:** The Central Tower autonomously detects the missing unit through an authentic 15-second heartbeat timeout delay before legitimately triggering a backup drone to launch from the staging pad.
+
+#### Bug Fix: Simulation Nodes Lingering Post-Mission
+- Inserted `required="true"` rigidly onto the master `area_explorer` node in `explore_areas.launch`. When the swarm completes 100% coverage and exits the master node, `roslaunch` automatically intercepts the completion and explicitly tears down the entire simulation tree (Gazebo GUI, UGV logic, Comms, etc.).
+
+---
+
 ### Session: 5 April 2026 — Reserve Drone & Stop-Condition Fixes
 
 **Files changed:** `scripts/area_explorer.py`, `scripts/algo3_sim.py`
