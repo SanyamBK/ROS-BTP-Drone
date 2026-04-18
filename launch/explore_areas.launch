@@ -12,7 +12,7 @@
   <node name="spawn_fleet" pkg="multi_drone_sim" type="spawn_fleet.py" output="screen" />
   
   <!-- Start the area exploration controller -->
-  <node name="area_explorer" pkg="multi_drone_sim" type="area_explorer.py" output="screen">
+  <node name="area_explorer" pkg="multi_drone_sim" type="area_explorer.py" output="screen" required="true">
     <param name="config_path" value="$(find multi_drone_sim)/config/areas.yaml"/>
   </node>
   

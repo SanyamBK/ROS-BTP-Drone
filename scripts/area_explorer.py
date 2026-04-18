@@ -1321,6 +1321,10 @@ def main():
                     local_id = random.choice(active_drones)
                     drone_to_kill = controller.drone_explorers[local_id]
                     rospy.logerr(f"CRITICAL: Drone {drone_to_kill.drone_id} has suffered hardware failure 1 and shut down!")
+                    
+                    # Inter-drone P2P mesh communication
+                    rospy.logwarn(f"[P2P] Drone {drone_to_kill.drone_id} broadcasting EMERGENCY AD-HOC DEATH SIGNAL to nearby drones!")
+                    
                     dead_drones.append(local_id)
                     death_pub.publish(drone_to_kill.drone_id)
                     drone_to_kill.cmd_vel_pub.publish(Twist())
@@ -1328,11 +1332,13 @@ def main():
                     drone_to_kill.is_dead = True
 
                     new_active = [i for i in range(len(controller.drone_explorers)) if i not in dead_drones]
+                    
+                    rospy.loginfo(f"[P2P] Nearby drones received SOS from Drone {drone_to_kill.drone_id}. Dynamically absorbing coverage partitions...")
                     controller.algo.update_active_drones(new_active)
-                    rospy.logwarn(f"Reconfiguring workspace partitions. Active drones: {len(new_active)}")
-                    # Directly request a reserve — don't wait for the Central Tower's
-                    # 15-second heartbeat timeout (dead drone may never have been in known_drones).
-                    central_commands.append("DEPLOY_RESERVE")
+                    rospy.logwarn(f"Reconfigured local workspace partitions. Active drones: {len(new_active)}")
+                    
+                    # Note: We NO LONGER instantly request a reserve here. 
+                    # We rely on Central Tower noticing the missing heartbeat natively.
 
             # TRIGGER FAILURE 2
             if pct > fail_thresh_2 and not failure_2_triggered:
@@ -1342,6 +1348,10 @@ def main():
                     local_id = random.choice(active_drones)
                     drone_to_kill = controller.drone_explorers[local_id]
                     rospy.logerr(f"CRITICAL: Drone {drone_to_kill.drone_id} has suffered hardware failure 2 and shut down!")
+                    
+                    # Inter-drone P2P mesh communication
+                    rospy.logwarn(f"[P2P] Drone {drone_to_kill.drone_id} broadcasting EMERGENCY AD-HOC DEATH SIGNAL to nearby drones!")
+                    
                     dead_drones.append(local_id)
                     death_pub.publish(drone_to_kill.drone_id)
                     drone_to_kill.cmd_vel_pub.publish(Twist())
@@ -1349,10 +1359,13 @@ def main():
                     drone_to_kill.is_dead = True
 
                     new_active = [i for i in range(len(controller.drone_explorers)) if i not in dead_drones]
+                    
+                    rospy.loginfo(f"[P2P] Nearby drones received SOS from Drone {drone_to_kill.drone_id}. Dynamically absorbing coverage partitions...")
                     controller.algo.update_active_drones(new_active)
-                    rospy.logwarn(f"Reconfiguring workspace partitions. Active drones: {len(new_active)}")
-                    # Same as failure 1 — bypass heartbeat timeout for instant deployment.
-                    central_commands.append("DEPLOY_RESERVE")
+                    rospy.logwarn(f"Reconfigured local workspace partitions. Active drones: {len(new_active)}")
+                    
+                    # Note: We NO LONGER instantly request a reserve here. 
+                    # We rely on Central Tower noticing the missing heartbeat natively.
 
             # PROCESS CENTRAL COMMANDS (one per tick to avoid draining backups in same frame)
             if central_commands:
